@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>World Wide Whack-a-Mole</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- Ad overlay -->
+  <div id="adOverlay" class="hidden">
+    <div class="ad-box">
+      <div class="ad-label">Advertisement</div>
+      <div class="ad-banner">300 × 250 Ad Placeholder</div>
+      <div class="ad-choices" title="AdChoices">
+        <svg viewBox="0 0 16 14" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="8,1 15,13 1,13" fill="#1a73e8"/>
+          <text x="8" y="12" text-anchor="middle" fill="#fff" font-size="8" font-family="Arial" font-weight="bold">i</text>
+        </svg>
+      </div>
+      <button id="adCloseBtn" class="ad-close" disabled>&#x2715; Close</button>
+    </div>
+  </div>
+
+  <script src="sound.js"></script>
+  <script src="mole.js"></script>
+  <script src="trump.js"></script>
+  <script src="ads.js"></script>
+  <script src="icbm.js"></script>
+  <script src="cruise.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

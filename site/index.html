@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meathead AI — Where Token Tumblers and Meat Sacks Create Seriously Silly Software</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Meathead AI makes seriously silly games. Play ROIDS: Maximum Relief Edition and World Wide Whack-a-Mole free in your browser. Where token tumblers and meat sacks create seriously silly software.">
+    <meta name="keywords" content="Meathead AI, ROIDS, Whack-a-Mole, arcade games, browser games, indie games, space shooter, asteroids, free games">
+    <meta name="author" content="Meathead AI">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://meathead.ai/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://meathead.ai/">
+    <meta property="og:title" content="Meathead AI — Seriously Silly Games">
+    <meta property="og:description" content="Play ROIDS: Maximum Relief Edition and World Wide Whack-a-Mole free in your browser. Where token tumblers and meat sacks create seriously silly software.">
+    <meta property="og:image" content="https://meathead.ai/images/meathead-logo.jpg">
+    <meta property="og:site_name" content="Meathead AI">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Meathead AI — Seriously Silly Games">
+    <meta name="twitter:description" content="Play ROIDS and World Wide Whack-a-Mole free in your browser. Where token tumblers and meat sacks create seriously silly software.">
+    <meta name="twitter:image" content="https://meathead.ai/images/meathead-logo.jpg">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* === BACKGROUND — covers viewport in both orientations === */
+        .bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background:
+                radial-gradient(ellipse at 20% 50%, rgba(109, 40, 217, .45) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(236, 72, 153, .35) 0%, transparent 55%),
+                radial-gradient(ellipse at 50% 90%, rgba(14, 165, 233, .30) 0%, transparent 55%),
+                linear-gradient(135deg, #0f0c29 0%, #1a1040 40%, #24243e 100%);
+            background-attachment: fixed;
+        }
+
+        /* Animated floating shapes */
+        .bg::before, .bg::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: .25;
+            animation: float 20s ease-in-out infinite alternate;
+        }
+        .bg::before {
+            width: 60vmax; height: 60vmax;
+            top: -20vmax; left: -15vmax;
+            background: #7c3aed;
+        }
+        .bg::after {
+            width: 50vmax; height: 50vmax;
+            bottom: -15vmax; right: -10vmax;
+            background: #ec4899;
+            animation-delay: -10s;
+        }
+        @keyframes float {
+            0%   { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(5vmax, -4vmax) scale(1.08); }
+        }
+
+        /* Stars */
+        .stars {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background-image:
+                radial-gradient(1px 1px at  10%  15%, rgba(255,255,255,.7) 50%, transparent 50%),
+                radial-gradient(1px 1px at  30%  45%, rgba(255,255,255,.5) 50%, transparent 50%),
+                radial-gradient(1.5px 1.5px at 55% 10%, rgba(255,255,255,.8) 50%, transparent 50%),
+                radial-gradient(1px 1px at  70%  65%, rgba(255,255,255,.5) 50%, transparent 50%),
+                radial-gradient(1px 1px at  85%  30%, rgba(255,255,255,.6) 50%, transparent 50%),
+                radial-gradient(1.5px 1.5px at 15% 80%, rgba(255,255,255,.4) 50%, transparent 50%),
+                radial-gradient(1px 1px at  45%  90%, rgba(255,255,255,.6) 50%, transparent 50%),
+                radial-gradient(1px 1px at  90%  85%, rgba(255,255,255,.5) 50%, transparent 50%),
+                radial-gradient(1px 1px at  60%  40%, rgba(255,255,255,.3) 50%, transparent 50%),
+                radial-gradient(1.5px 1.5px at 25% 55%, rgba(255,255,255,.5) 50%, transparent 50%);
+            animation: twinkle 6s ease-in-out infinite alternate;
+        }
+        @keyframes twinkle {
+            0%   { opacity: .6; }
+            100% { opacity: 1; }
+        }
+
+        /* === HEADER with LOGO === */
+        header {
+            text-align: center;
+            padding: 2.5rem 1.5rem 1rem;
+        }
+        .header-logo {
+            max-width: min(90vw, 540px);
+            height: auto;
+            margin-bottom: .5rem;
+            border-radius: 16px;
+        }
+
+        /* === NAV === */
+        nav {
+            display: flex;
+            justify-content: center;
+            gap: 1.2rem;
+            padding: .8rem 1rem;
+            flex-wrap: wrap;
+        }
+        nav a {
+            color: rgba(255,255,255,.75);
+            text-decoration: none;
+            font-size: .9rem;
+            padding: .4rem .8rem;
+            border-radius: 6px;
+            transition: all .2s;
+        }
+        nav a:hover {
+            color: #fff;
+            background: rgba(255,255,255,.1);
+        }
+
+        /* === MAIN CONTENT === */
+        main {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem 3rem;
+        }
+
+        /* Game card */
+        .game-card {
+            background: rgba(255,255,255,.06);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 20px;
+            overflow: hidden;
+            margin-bottom: 2.5rem;
+            transition: transform .25s, box-shadow .25s;
+        }
+        .game-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,.35);
+        }
+
+        /* Banner */
+        .banner-wrap {
+            width: 100%;
+            aspect-ratio: 1024 / 500;
+            overflow: hidden;
+            position: relative;
+        }
+        .banner-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Card body */
+        .card-body {
+            display: flex;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            align-items: flex-start;
+        }
+
+        /* Icon — clickable */
+        .icon-link {
+            flex-shrink: 0;
+            display: block;
+            width: 110px;
+            height: 110px;
+            border-radius: 22px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,.4);
+            transition: transform .2s;
+        }
+        .icon-link:hover {
+            transform: scale(1.08);
+        }
+        .icon-link img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .card-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .card-info h2 {
+            font-size: clamp(1.3rem, 3vw, 1.7rem);
+            font-weight: 800;
+            margin-bottom: .3rem;
+        }
+        .card-info .subtitle {
+            font-size: .9rem;
+            color: rgba(255,255,255,.55);
+            margin-bottom: .7rem;
+        }
+        .card-info p {
+            font-size: .95rem;
+            line-height: 1.55;
+            color: rgba(255,255,255,.8);
+            margin-bottom: 1rem;
+        }
+
+        /* Buttons row */
+        .btn-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .6rem;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            padding: .55rem 1.1rem;
+            border-radius: 10px;
+            font-size: .85rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all .2s;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-play {
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            color: #fff;
+        }
+        .btn-play:hover { filter: brightness(1.15); transform: translateY(-1px); }
+
+        .btn-store {
+            background: rgba(255,255,255,.1);
+            color: rgba(255,255,255,.75);
+            border: 1px solid rgba(255,255,255,.15);
+            cursor: default;
+            opacity: .7;
+        }
+        .btn-store .coming { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; }
+
+        .btn-privacy {
+            background: rgba(255,255,255,.08);
+            color: rgba(255,255,255,.65);
+            border: 1px solid rgba(255,255,255,.1);
+        }
+        .btn-privacy:hover { color: #fff; background: rgba(255,255,255,.14); }
+
+        /* Play icon SVG */
+        .play-icon { width: 16px; height: 16px; fill: currentColor; }
+
+        /* === FOOTER === */
+        footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            font-size: .8rem;
+            color: rgba(255,255,255,.35);
+            border-top: 1px solid rgba(255,255,255,.06);
+        }
+        footer a {
+            color: rgba(255,255,255,.5);
+            text-decoration: none;
+        }
+        footer a:hover { color: #fff; }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 600px) {
+            .card-body {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            .icon-link { width: 90px; height: 90px; }
+            .btn-row { justify-content: center; }
+            header { padding: 1.5rem 1rem .6rem; }
+            .header-logo { max-width: 85vw; }
+        }
+
+        /* Landscape on small screens */
+        @media (max-height: 500px) and (orientation: landscape) {
+            header { padding: 1rem 1rem .4rem; }
+            .header-logo { max-width: 360px; }
+            .game-card { margin-bottom: 1.5rem; }
+            .card-body { padding: 1rem; }
+            .banner-wrap { aspect-ratio: 2.5 / 1; }
+        }
+    </style>
+    <!-- Structured Data: Organization -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Meathead AI",
+        "url": "https://meathead.ai",
+        "logo": "https://meathead.ai/images/meathead-logo.jpg",
+        "email": "support@meathead.ai",
+        "description": "Where Token Tumblers and Meat Sacks Create Seriously Silly Software"
+    }
+    </script>
+
+    <!-- Structured Data: Games -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "ROIDS: Maximum Relief Edition",
+        "description": "Classic asteroid shooter with a cheeky twist. Pilot your trusty tube of Roids Cream through waves of incoming asteroids.",
+        "url": "https://meathead.ai/roids/",
+        "image": "https://meathead.ai/images/roids-banner.jpg",
+        "genre": ["Arcade", "Space Shooter"],
+        "gamePlatform": ["Web browser", "Android"],
+        "applicationCategory": "Game",
+        "operatingSystem": "Any",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "author": {
+            "@type": "Organization",
+            "name": "Meathead AI"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "World Wide Whack-a-Mole",
+        "description": "Grab your trusty mallet and whack the world's most notorious leaders back into their holes, intercept nuclear ICBMs, and destroy incoming cruise missiles.",
+        "url": "https://meathead.ai/whack/",
+        "image": "https://meathead.ai/images/whack-banner.jpg",
+        "genre": ["Arcade", "Tap Game"],
+        "gamePlatform": ["Web browser", "Android"],
+        "applicationCategory": "Game",
+        "operatingSystem": "Any",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "author": {
+            "@type": "Organization",
+            "name": "Meathead AI"
+        }
+    }
+    </script>
+</head>
+<body>
+
+<div class="bg"></div>
+<div class="stars"></div>
+
+<header>
+    <img class="header-logo" src="images/meathead-logo.jpg" alt="Meathead AI — Where Token Tumblers and Meat Sacks Create Seriously Silly Software">
+</header>
+
+<nav>
+    <a href="#roids">ROIDS</a>
+    <a href="#whack">Whack-a-Mole</a>
+    <a href="roids-privacy.html">ROIDS Privacy</a>
+    <a href="whack-privacy.html">Whack-a-Mole Privacy</a>
+</nav>
+
+<main>
+
+    <!-- ==================== ROIDS ==================== -->
+    <section class="game-card" id="roids">
+        <div class="banner-wrap">
+            <img src="images/roids-banner.jpg" alt="ROIDS: Maximum Relief Edition banner" loading="lazy">
+        </div>
+        <div class="card-body">
+            <a class="icon-link" href="/roids/" target="_blank" rel="noopener" title="Play ROIDS in your browser">
+                <img src="images/roids-icon.jpg" alt="ROIDS icon">
+            </a>
+            <div class="card-info">
+                <h2>ROIDS: Maximum Relief Edition</h2>
+                <div class="subtitle">Arcade &bull; Space Shooter</div>
+                <p>
+                    Pilot your trusty tube of Roids Cream through waves of incoming asteroids.
+                    Blast them apart, dodge the UFO, and survive as long as you can while the chaos escalates.
+                    9 progressively challenging levels with retro-style sound effects and intuitive touch controls.
+                </p>
+                <div class="btn-row">
+                    <a class="btn btn-play" href="/roids/" target="_blank" rel="noopener">
+                        <svg class="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        Play Now
+                    </a>
+                    <span class="btn btn-store">
+                        <span class="coming">Coming Soon</span> Google Play
+                    </span>
+                    <span class="btn btn-store">
+                        <span class="coming">Coming Soon</span> Microsoft Store
+                    </span>
+                    <a class="btn btn-privacy" href="roids-privacy.html">Privacy Policy</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== WHACK-A-MOLE ==================== -->
+    <section class="game-card" id="whack">
+        <div class="banner-wrap">
+            <img src="images/whack-banner.jpg" alt="World Wide Whack-a-Mole banner" loading="lazy">
+        </div>
+        <div class="card-body">
+            <a class="icon-link" href="/whack/" target="_blank" rel="noopener" title="Play World Wide Whack-a-Mole in your browser">
+                <img src="images/whack-icon.jpg" alt="World Wide Whack-a-Mole icon">
+            </a>
+            <div class="card-info">
+                <h2>World Wide Whack-a-Mole</h2>
+                <div class="subtitle">Arcade &bull; Tap Game</div>
+                <p>
+                    The world is in chaos — grab your trusty mallet and whack the world's most notorious
+                    leaders back into their holes, intercept nuclear ICBMs, and destroy incoming cruise missiles
+                    before time runs out! Three escalating levels with infinite progression beyond Level 3.
+                </p>
+                <div class="btn-row">
+                    <a class="btn btn-play" href="/whack/" target="_blank" rel="noopener">
+                        <svg class="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        Play Now
+                    </a>
+                    <span class="btn btn-store">
+                        <span class="coming">Coming Soon</span> Google Play
+                    </span>
+                    <span class="btn btn-store">
+                        <span class="coming">Coming Soon</span> Microsoft Store
+                    </span>
+                    <a class="btn btn-privacy" href="whack-privacy.html">Privacy Policy</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<footer>
+    &copy; 2026 Meathead AI &mdash; <a href="mailto:support@meathead.ai">support@meathead.ai</a>
+</footer>
+
+</body>
+</html>

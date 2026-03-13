@@ -1,0 +1,42 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; overflow: hidden; touch-action: none; }
+canvas { display: block; width: 100vw; height: 100vh; }
+#adOverlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
+}
+#adOverlay.hidden { display: none; }
+.ad-box {
+  background: #fff; border-radius: 8px; padding: 20px;
+  width: 320px; position: relative; box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+}
+.ad-label {
+  font-family: Arial, sans-serif; font-size: 11px; color: #888;
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;
+}
+.ad-banner {
+  background: #e8e8e8; width: 280px; height: 250px; border: 1px solid #ccc;
+  display: flex; align-items: center; justify-content: center;
+  font-family: Arial, sans-serif; font-size: 13px; color: #999;
+  border-radius: 4px;
+}
+.ad-choices {
+  position: absolute; top: 8px; right: 8px;
+  width: 16px; height: 14px; cursor: pointer;
+}
+.ad-choices svg { width: 16px; height: 14px; }
+.ad-close {
+  display: block; margin: 12px 0 0 auto;
+  background: #1a73e8; color: #fff; border: none; border-radius: 4px;
+  padding: 8px 18px; font-size: 14px; cursor: pointer; font-family: Arial, sans-serif;
+}
+.ad-close:disabled { background: #aaa; cursor: not-allowed; }
+.ad-next-btn {
+  display: block; margin: 16px auto 0 auto;
+  background: #1e9e1e; color: #fff; border: none; border-radius: 6px;
+  padding: 14px 40px; font-size: 19px; font-weight: bold; cursor: pointer;
+  font-family: Arial, sans-serif; letter-spacing: 0.5px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.35);
+}
+.ad-next-btn:hover  { background: #24b824; }
+.ad-next-btn:disabled { background: #aaa; cursor: not-allowed; box-shadow: none; }

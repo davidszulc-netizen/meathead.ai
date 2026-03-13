@@ -1,0 +1,102 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  background: #000;
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  cursor: none;
+}
+
+#gameCanvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  touch-action: none;
+}
+
+#adOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #111;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+}
+
+#adOverlay.hidden {
+  display: none;
+}
+
+#adOverlay .ad-label {
+  font-size: 12px;
+  letter-spacing: 4px;
+  color: #666;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+}
+
+#adOverlay .ad-box {
+  width: 728px;
+  max-width: 90vw;
+  height: 400px;
+  background: #222;
+  border: 1px solid #444;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  font-size: 18px;
+  letter-spacing: 2px;
+}
+
+#adOverlay .ad-box .ad-placeholder-text {
+  font-size: 13px;
+  color: #444;
+  margin-top: 12px;
+  letter-spacing: 1px;
+}
+
+#adOverlay .ad-countdown {
+  margin-top: 24px;
+  font-size: 16px;
+  color: #aaa;
+  letter-spacing: 2px;
+}
+
+#adOverlay .ad-continue-btn {
+  margin-top: 20px;
+  padding: 12px 40px;
+  background: transparent;
+  border: 1px solid #fff;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  letter-spacing: 4px;
+  cursor: pointer;
+  display: none;
+}
+
+#adOverlay .ad-continue-btn:hover {
+  background: #fff;
+  color: #000;
+}

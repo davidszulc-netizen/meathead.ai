@@ -1,0 +1,26 @@
+# Meathead AI
+
+> Where Token Tumblers and Meat Sacks Create Seriously Silly Software
+
+Meathead AI is an indie game studio that builds fun, irreverent arcade games playable for free in the browser.
+
+## Games
+
+### ROIDS: Maximum Relief Edition
+- Play: https://velvety-pothos-20b646.netlify.app/
+- Genre: Arcade / Space Shooter
+- Privacy Policy: https://meathead.ai/roids-privacy.html
+
+A classic asteroid shooter with a cheeky twist. Pilot your trusty tube of Roids Cream through waves of incoming asteroids. Blast them apart, dodge the UFO, and survive as long as you can while the chaos escalates. Features 9 progressively challenging levels, retro-style synthesized sound effects, intuitive touch controls, and high score tracking. Free to play with ads. No account required.
+
+### World Wide Whack-a-Mole
+- Play: https://dreamy-pegasus-de28b4.netlify.app/
+- Genre: Arcade / Tap Game
+- Privacy Policy: https://meathead.ai/whack-privacy.html
+
+Grab your trusty mallet and whack the world's most notorious leaders back into their holes, intercept nuclear ICBMs, and destroy incoming cruise missiles before time runs out. Three escalating levels with infinite progression beyond Level 3. Free to play with ads.
+
+## Contact
+
+- Email: support@meathead.ai
+- Website: https://meathead.ai
