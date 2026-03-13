@@ -11,6 +11,7 @@
     <meta name="author" content="Meathead AI">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://meathead.ai/">
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
@@ -49,7 +50,6 @@
                 radial-gradient(ellipse at 80% 20%, rgba(236, 72, 153, .35) 0%, transparent 55%),
                 radial-gradient(ellipse at 50% 90%, rgba(14, 165, 233, .30) 0%, transparent 55%),
                 linear-gradient(135deg, #0f0c29 0%, #1a1040 40%, #24243e 100%);
-            background-attachment: fixed;
         }
 
         /* Animated floating shapes */
@@ -143,6 +143,7 @@
         /* Game card */
         .game-card {
             background: rgba(255,255,255,.06);
+            -webkit-backdrop-filter: blur(16px);
             backdrop-filter: blur(16px);
             border: 1px solid rgba(255,255,255,.1);
             border-radius: 20px;
