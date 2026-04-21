@@ -278,7 +278,7 @@ function drawPutin(ctx, x, y, r) {
 }
 
 // ── Portrait: Castro ────────────────────────────────────────────────────────
-function drawCastro(ctx, x, y, r) {
+function drawCastro(ctx, x, y, r, jitter) {
   // Olive-brown skin, long oval face
   ctx.save();
   ctx.beginPath();
@@ -387,7 +387,7 @@ function drawCastro(ctx, x, y, r) {
     ctx.beginPath();
     ctx.moveTo(x + i*r*0.16, y + r*0.34);
     ctx.quadraticCurveTo(
-      x + i*r*0.22 + (Math.random()-0.5)*r*0.1, y + r*0.75,
+      x + i*r*0.22 + (jitter ? jitter[i+3] : 0)*r*0.1, y + r*0.75,
       x + i*r*0.14, y + r*1.2
     );
     ctx.stroke();
@@ -758,6 +758,8 @@ class Mole {
     this.particles = [];
     // Wobble when UP
     this.wobblePhase = 0;
+    // Pre-computed beard jitter for Castro (charIndex 2) — avoids per-frame Math.random()
+    this.castroJitter = Array.from({length: 7}, () => Math.random() - 0.5);
   }
 
   popUp(visibleMs) {
@@ -895,7 +897,7 @@ class Mole {
     ctx.clip();
 
     // Draw detailed portrait (each function draws face + hair + clothing)
-    this.char.draw(ctx, x + wobbleX, headY, headR);
+    this.char.draw(ctx, x + wobbleX, headY, headR, this.castroJitter);
 
     // Last name on chest
     const nameFontSize = Math.round(headR * 0.3);

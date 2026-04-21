@@ -7,14 +7,24 @@ const Sound = (() => {
   let beatTempo = 1.0;
   let ufoTimer = null;
 
+  // m-3: Robust AudioContext creation with error handling
   function getCtx() {
-    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-    if (ctx.state === 'suspended') ctx.resume();
+    if (!ctx) {
+      try {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch (e) {
+        return null; // AudioContext unavailable (private browsing, restricted env)
+      }
+    }
+    // NOTE: resume() intentionally NOT called here — calling it outside a user gesture
+    // spams the console with DOMException: NotAllowedError rejections on page load.
+    // Resume is handled exclusively in unlock(), which is bound to user gesture events.
     return ctx;
   }
 
   function noise(duration, frequency, gain = 0.4) {
     const c = getCtx();
+    if (!c) return; // m-3: guard against unavailable context
     const bufferSize = Math.floor(c.sampleRate * duration);
     const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
     const data = buffer.getChannelData(0);
@@ -40,6 +50,7 @@ const Sound = (() => {
 
   function tone(type, freq, duration, gain = 0.3, freqEnd = null) {
     const c = getCtx();
+    if (!c) return; // m-3: guard against unavailable context
     const osc = c.createOscillator();
     const gainNode = c.createGain();
 
@@ -62,16 +73,32 @@ const Sound = (() => {
   let thrustNode = null;
   let thrustGain = null;
 
-  function startThrust() {
-    if (thrustNode) return;
+  // C-1: Cached thrust buffer — generated once at first use, reused for all thrust playback.
+  // Previously a new 2-second (96k-sample) buffer was allocated on every keypress,
+  // causing synchronous CPU spikes on mobile and unbounded memory growth.
+  let _thrustBuffer = null;
+
+  function _getThrustBuffer() {
+    if (_thrustBuffer) return _thrustBuffer;
     const c = getCtx();
+    if (!c) return null;
     const bufferSize = c.sampleRate * 2;
     const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    _thrustBuffer = buffer;
+    return _thrustBuffer;
+  }
+
+  function startThrust() {
+    if (thrustNode) return;
+    const c = getCtx();
+    if (!c) return;
+    const buffer = _getThrustBuffer();
+    if (!buffer) return;
 
     thrustNode = c.createBufferSource();
-    thrustNode.buffer = buffer;
+    thrustNode.buffer = buffer; // C-1: reuse cached buffer — no new allocation
     thrustNode.loop = true;
 
     const filter = c.createBiquadFilter();
@@ -90,8 +117,11 @@ const Sound = (() => {
   function stopThrust() {
     if (!thrustNode) return;
     try {
-      thrustGain.gain.exponentialRampToValueAtTime(0.001, getCtx().currentTime + 0.1);
-      thrustNode.stop(getCtx().currentTime + 0.1);
+      const c = getCtx();
+      if (c) {
+        thrustGain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.1);
+        thrustNode.stop(c.currentTime + 0.1);
+      }
     } catch { /* AudioContext may throw if already stopped — safe to ignore */ }
     thrustNode = null;
     thrustGain = null;
@@ -159,7 +189,12 @@ const Sound = (() => {
     if (ufoTimer) { clearTimeout(ufoTimer); ufoTimer = null; }
   }
 
-  function unlock() { getCtx(); }
+  function unlock() {
+    const c = getCtx();
+    // Resume here only — this is always called from a user gesture event handler
+    if (c && c.state === 'suspended') c.resume().catch(() => {});
+    _getThrustBuffer(); // C-1: pre-warm the thrust buffer on first user interaction
+  }
 
   return {
     unlock, startThrust, stopThrust, fire, asteroidExplode, shipExplode,

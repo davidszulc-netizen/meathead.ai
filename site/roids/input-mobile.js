@@ -72,6 +72,13 @@ function onTouchMove(e) {
   }
 }
 
+function _onTouchCancel(e) {
+  e.preventDefault();
+  // Reset all tracking state — OS interrupted the gesture (incoming call, system swipe, etc.)
+  _touchId = null;
+  _twoFingerActive = false;
+}
+
 function onTouchEnd(e) {
   e.preventDefault();
 
@@ -96,11 +103,9 @@ function onTouchEnd(e) {
     // ── TAP → aim + fire ──
     s.targetAngle = angleFromShipTo(t.clientX, t.clientY);
 
-    if (_keys) {
-      _keys.space = true;
-      // Release after one frame-ish so only one shot fires per tap
-      setTimeout(() => { if (_keys) _keys.space = false; }, 100);
-    }
+    // M-4: fireImmediate() bypasses keys.space state machine — fix for rapid-fire suppression.
+    // Shared function in main.js: one entry point, both input modules call it.
+    if (typeof fireImmediate === 'function') fireImmediate();
 
   } else if (dist >= SWIPE_MIN_DIST) {
     // ── SWIPE → aim + thrust impulse ──
@@ -124,10 +129,15 @@ const MobileInput = {
     _keys         = keysRef;
     _hyperspaceCb = onHyperspace;
     _canvas       = document.getElementById('gameCanvas');
+    // m-9: guard against missing canvas element
+    if (!_canvas) { console.error('MobileInput.init: #gameCanvas not found'); return false; }
 
-    _canvas.addEventListener('touchstart', onTouchStart, { passive: false });
-    _canvas.addEventListener('touchmove',  onTouchMove,  { passive: false });
-    _canvas.addEventListener('touchend',   onTouchEnd,   { passive: false });
+    _canvas.addEventListener('touchstart',  onTouchStart,  { passive: false });
+    _canvas.addEventListener('touchmove',   onTouchMove,   { passive: false });
+    _canvas.addEventListener('touchend',    onTouchEnd,    { passive: false });
+    // touchcancel fires when OS interrupts (incoming call, system gesture) — must reset
+    // tracking state or _touchId stays non-null, permanently blocking all future input
+    _canvas.addEventListener('touchcancel', _onTouchCancel, { passive: false });
 
     return true; // no permissions needed
   },
@@ -138,9 +148,10 @@ const MobileInput = {
 
   destroy() {
     if (_canvas) {
-      _canvas.removeEventListener('touchstart', onTouchStart);
-      _canvas.removeEventListener('touchmove',  onTouchMove);
-      _canvas.removeEventListener('touchend',   onTouchEnd);
+      _canvas.removeEventListener('touchstart',  onTouchStart);
+      _canvas.removeEventListener('touchmove',   onTouchMove);
+      _canvas.removeEventListener('touchend',    onTouchEnd);
+      _canvas.removeEventListener('touchcancel', _onTouchCancel);
     }
     _keys = null;
     _hyperspaceCb = null;

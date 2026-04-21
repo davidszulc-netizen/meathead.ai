@@ -12,6 +12,9 @@ class Bullet {
     this.life = life;
     this.fromUFO = fromUFO;
     this.radius = 8;
+    // m-1: Randomise ellipse dims once in constructor — avoids per-frame flicker from draw()
+    this.widthMult  = 1.4 + Math.random() * 0.3;
+    this.heightMult = 0.6 + Math.random() * 0.2;
   }
 
   update(dt, W, H) {
@@ -32,8 +35,8 @@ class Bullet {
     ctx.fillStyle = this.fromUFO ? 'rgba(255,140,100,0.9)' : 'rgba(150,230,150,0.9)';
     ctx.beginPath();
     ctx.ellipse(this.x, this.y,
-                this.radius * (1.4 + Math.random() * 0.3),
-                this.radius * (0.6 + Math.random() * 0.2),
+                this.radius * this.widthMult,  // m-1: cached in constructor
+                this.radius * this.heightMult,
                 dir, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();

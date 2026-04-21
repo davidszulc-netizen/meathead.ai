@@ -1,7 +1,8 @@
 'use strict';
 
-// ── AdMob config ──────────────────────────────────────────────────────────────
-const ADMOB_INTERSTITIAL_ID = 'ca-app-pub-9350592744116375/5964515069';
+// ── AdMob config — CWE-522: ID comes from GAME_CONFIG (config.js), not hardcoded ──
+const ADMOB_INTERSTITIAL_ID =
+  (typeof GAME_CONFIG !== 'undefined' && GAME_CONFIG.admobInterstitialId) || '';
 
 // ── Native AdMob interstitial (Capacitor) ────────────────────────────────────
 function getAdMob() {
@@ -14,7 +15,7 @@ async function ensureAdMobReady() {
   const AdMob = getAdMob();
   if (!AdMob || adMobInitialized) return !!AdMob;
   try {
-    await AdMob.initialize({ testingDevices: [], initializeForTesting: false });
+    await AdMob.initialize({ testingDevices: [], initializeForTesting: false }); // M-2: production mode
     adMobInitialized = true;
     return true;
   } catch (e) {
@@ -28,7 +29,8 @@ async function showNativeAd(onComplete) {
   if (!ready) { showFallbackAd(onComplete); return; }
 
   const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
-  let dismissHandle, appStateHandle, adWasClicked = false;
+  // M-3: initialise both handles as null so try/finally cleanup is always safe
+  let dismissHandle = null, appStateHandle = null, adWasClicked = false;
 
   try {
     if (App) {
@@ -36,6 +38,10 @@ async function showNativeAd(onComplete) {
         if (!isActive) adWasClicked = true;
       });
     }
+    // M-3 (corrected): listeners removed inside the dismiss callback, NOT in finally.
+    // showInterstitial() resolves when the ad is displayed, not when dismissed.
+    // Moving removal to finally would destroy dismissHandle before the user closes the ad,
+    // causing onComplete() to never be called and permanently freezing game state.
     dismissHandle = await AdMob.addListener('interstitialAdDismissed', () => {
       if (appStateHandle) appStateHandle.remove();
       dismissHandle.remove();
@@ -45,7 +51,7 @@ async function showNativeAd(onComplete) {
     await AdMob.showInterstitial();
   } catch (e) {
     if (appStateHandle) appStateHandle.remove();
-    if (dismissHandle) dismissHandle.remove();
+    if (dismissHandle)  dismissHandle.remove();
     onComplete(false);
   }
 }

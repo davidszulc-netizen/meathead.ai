@@ -11,15 +11,18 @@
   <canvas id="gameCanvas"></canvas>
   <div id="adOverlay" class="hidden"></div>
 
-  <script src="sound.js"></script>
-  <script src="particles.js"></script>
-  <script src="bullet.js"></script>
-  <script src="asteroid.js"></script>
-  <script src="ship.js"></script>
-  <script src="ufo.js"></script>
-  <script src="ads.js"></script>
-  <script src="input-mobile.js"></script>
-  <script src="input-desktop.js"></script>
-  <script src="main.js"></script>
+  <!-- CWE-829: SRI integrity hashes lock each local script to its reviewed content. -->
+  <!-- Regenerate with: node -e "const c=require('crypto'),f=require('fs'); console.log('sha256-'+c.createHash('sha256').update(f.readFileSync(process.argv[1])).digest('base64'))" <file> -->
+  <script src="config.js" integrity="sha256-KWl8dnPbmmf41ji6KpEAwEiIZMOSjWgJTK0M/X/L8yk=" crossorigin="anonymous"></script>
+  <script src="sound.js" integrity="sha256-IZi2qIXTYEk/YwJg2IoT3HbVMiNY9g9NiJxHy8O0br0=" crossorigin="anonymous"></script>
+  <script src="particles.js" integrity="sha256-ZWpakTLM55tFaKKY6Njf3IdSeZRYVSX9YEAEWplVwNU=" crossorigin="anonymous"></script>
+  <script src="bullet.js" integrity="sha256-ENcvaDwE8BqWelaB2tl5sBWQ7JTZkHx8rj4f7nKGr28=" crossorigin="anonymous"></script>
+  <script src="asteroid.js" integrity="sha256-WmOBB3D5KPuWjLDu6BBPihDcfKowhidgFpiqjVc7h2s=" crossorigin="anonymous"></script>
+  <script src="ship.js" integrity="sha256-WljivhdvFS233vFqI8ACLoOhF0Py6givXDxu97gCb0E=" crossorigin="anonymous"></script>
+  <script src="ufo.js" integrity="sha256-tEmGe1grj8aUR/lAQxC6qTp+8f989HYxOhZdLRXYMJA=" crossorigin="anonymous"></script>
+  <script src="ads.js" integrity="sha256-BlaNSeIVhq8nDpxiUTU3ff4cubGRS8190FSBc0jO5xg=" crossorigin="anonymous"></script>
+  <script src="input-mobile.js" integrity="sha256-XHHpAXKz6pHTHC2Iy1fhTvARtZVMYnj5N39R4JsGPHk=" crossorigin="anonymous"></script>
+  <script src="input-desktop.js" integrity="sha256-jGsEIuvJViKErz7ksNOl4+Gp9ccLAG67lmDpoVOBIqY=" crossorigin="anonymous"></script>
+  <script src="main.js" integrity="sha256-WlUaFNG/OoCqIBfZX2rwZ0aHb/guN+NvtPYUS/Lg+fM=" crossorigin="anonymous"></script>
 </body>
 </html>

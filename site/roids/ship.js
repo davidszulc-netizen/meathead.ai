@@ -4,6 +4,9 @@ const SHIP_ROTATION_SPEED    = 3.5;
 const SHIP_TARGET_ROT_SPEED  = 10;   // rad/s — fast snap for touch-aim
 const SHIP_THRUST            = 420;
 const SHIP_DRAG              = 0.98;
+// m-2: Per-second drag constant — use Math.pow(SHIP_DRAG_PER_SEC, dt) for true frame-rate independence.
+// Equivalent to applying 0.98 exactly 60 times per second regardless of actual frame rate.
+const SHIP_DRAG_PER_SEC      = Math.pow(SHIP_DRAG, 60);
 const SHIP_MAX_SPEED         = 1200;
 const INVINCIBILITY_DURATION = 3.0;
 const HYPERSPACE_DEATH_CHANCE = 0.1;
@@ -49,8 +52,8 @@ class Ship {
       this.vy += Math.sin(this.angle) * SHIP_THRUST * dt;
     }
 
-    this.vx *= Math.pow(SHIP_DRAG, dt * 60);
-    this.vy *= Math.pow(SHIP_DRAG, dt * 60);
+    this.vx *= Math.pow(SHIP_DRAG_PER_SEC, dt); // m-2: frame-rate-independent drag
+    this.vy *= Math.pow(SHIP_DRAG_PER_SEC, dt);
 
     const speed = Math.hypot(this.vx, this.vy);
     if (speed > SHIP_MAX_SPEED) {
@@ -82,7 +85,8 @@ class Ship {
     this.y = Math.random() * H;
     this.vx = 0;
     this.vy = 0;
-    const onAsteroid = asteroids.some(a => Math.hypot(this.x - a.x, this.y - a.y) < a.radius + this.radius);
+    // M-1: Use same reduced radii as normal collision (a.radius*0.85 + ship.radius*0.7)
+    const onAsteroid = asteroids.some(a => Math.hypot(this.x - a.x, this.y - a.y) < a.radius * 0.85 + this.radius * 0.7);
     if (Math.random() < HYPERSPACE_DEATH_CHANCE || onAsteroid) return true;
     this.invincible = 0.5;
     return false;

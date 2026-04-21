@@ -1,5 +1,25 @@
 'use strict';
 
+// m-7: roundRect() polyfill — Safari and older browsers lack native support
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r = 0) {
+    // r=0 default prevents TypeError if caller omits the optional radii argument
+    const rr = typeof r === 'number' ? [r, r, r, r] : [r[0]??0, r[1]??r[0]??0, r[2]??r[0]??0, r[3]??r[1]??r[0]??0];
+    const [tl, tr, br, bl] = rr;
+    this.moveTo(x + tl, y);
+    this.lineTo(x + w - tr, y);
+    this.quadraticCurveTo(x + w, y, x + w, y + tr);
+    this.lineTo(x + w, y + h - br);
+    this.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+    this.lineTo(x + bl, y + h);
+    this.quadraticCurveTo(x, y + h, x, y + h - bl);
+    this.lineTo(x, y + tl);
+    this.quadraticCurveTo(x, y, x + tl, y);
+    this.closePath();
+    return this;
+  };
+}
+
 // ── Canvas ────────────────────────────────────────────────────────────────────
 const canvas = document.getElementById('gameCanvas');
 const ctx    = canvas.getContext('2d');
@@ -13,8 +33,18 @@ function resize() {
   _starCache = null;
   _asteroidCache = null;
 }
-window.addEventListener('resize', resize);
+// m-5: Debounce resize — mobile browsers fire resize continuously as toolbar shows/hides
+let _resizeDebounce = null;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeDebounce);
+  _resizeDebounce = setTimeout(resize, 150);
+});
 resize();
+
+// M-6: localStorage helpers — try/catch guards against SecurityError in Safari Incognito
+function safeLocalGet(key)      { try { return localStorage.getItem(key);    } catch { return null; } }
+function safeLocalSet(key, val) { try { localStorage.setItem(key, val);      } catch { /* ignored */ } }
+function safeLocalRemove(key)   { try { localStorage.removeItem(key);        } catch { /* ignored */ } }
 
 // ── Mobile detection ──────────────────────────────────────────────────────────
 function isMobile() {
@@ -36,6 +66,7 @@ const keyMap = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up',
 
 window.addEventListener('keydown', e => {
   if (keyMap[e.key] !== undefined) { e.preventDefault(); keys[keyMap[e.key]] = true; }
+  if (e.repeat) return; // guard: ignore held-key repeats for one-shot actions
   if (e.key === 'Escape')    handleEsc();
   if (e.key === 'ArrowDown' && state === STATE.PLAYING) { keys.down = false; handleHyperspace(); }
 });
@@ -46,13 +77,15 @@ window.addEventListener('keyup', e => {
 });
 
 // ── Mobile: touch-to-start (gameplay touches handled by MobileInput) ─────────
+// MobileInput.init() is called ONCE at startup here to prevent listener accumulation.
+// Previously it was called inside initMobileAndStart() on every game start, causing
+// touchstart/move/end handlers to stack up across multiple games.
 if (IS_MOBILE) {
+  MobileInput.init(keys, handleHyperspace);
   canvas.addEventListener('touchstart', e => {
     e.preventDefault();
     Sound.unlock();
-    if (state === STATE.INTRO) {
-      initMobileAndStart();
-    }
+    if (state === STATE.INTRO) startGame();
   }, { passive: false });
 }
 
@@ -87,7 +120,32 @@ let fireTimer = 0, levelUpTimer = 0;
 let thrustWasOn = false;
 let blinkTimer = 0, blinkOn = true;
 
+// C-2: dt-based timers replacing setTimeout — these tick only inside update(), so they
+// automatically pause when the game loop stops executing (e.g. when state !== PLAYING).
+let _respawnTimer = 0;          // seconds until ship respawns after death (lives > 0)
+let _gameOverTimer = 0;         // seconds until GAME_OVER state is entered (lives === 0)
+let _gameOverAutoReturnTimer = 0; // seconds until auto-return from GAME_OVER to INTRO
+
+// m-14: Named constants for particle explosion parameters
+const SHIP_EXPLODE_COUNT = 40, SHIP_EXPLODE_SPEED_MIN = 60, SHIP_EXPLODE_SPEED_MAX = 250, SHIP_EXPLODE_LIFE = 1.5;
+const UFO_EXPLODE_COUNT  = 16, UFO_EXPLODE_SPEED_MIN  = 50, UFO_EXPLODE_SPEED_MAX  = 200, UFO_EXPLODE_LIFE  = 0.8;
+const ASTEROID_EXPLODE_COUNTS = { large: 20, medium: 12, small: 7 };
+const ASTEROID_EXPLODE_SPEED_MIN = 40, ASTEROID_EXPLODE_SPEED_MAX = 160, ASTEROID_EXPLODE_LIFE = 0.7;
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+// fireImmediate(): direct fire entry point for mouse/touch input — bypasses keys.space
+// state machine entirely. One shared function; both input modules call it rather than
+// inlining shoot() logic independently.
+function fireImmediate() {
+  if (!ship || !ship.alive || state !== STATE.PLAYING) return;
+  if (bullets.filter(b => !b.fromUFO).length < 4) {
+    const b = ship.shoot();
+    if (b) { bullets.push(b); Sound.fire(); }
+  }
+  fireTimer = 0;
+}
+
 function totalForLevel(lvl) { return Math.min(lvl + 1, 20); }
 
 function spawnLevel() {
@@ -103,9 +161,11 @@ function spawnLevel() {
 }
 
 function startGame() {
-  doubleLifeMode = localStorage.getItem('doubleLifeNextGame') === '1';
-  if (doubleLifeMode) localStorage.removeItem('doubleLifeNextGame');
+  doubleLifeMode = safeLocalGet('doubleLifeNextGame') === '1'; // M-6: safe localStorage read
+  if (doubleLifeMode) safeLocalRemove('doubleLifeNextGame');   // M-6: safe localStorage remove
   score = 0; lives = doubleLifeMode ? 6 : 3; level = 1; extraLifeAt = 10000;
+  // C-2 follow-up: clear dt-timers on new game so stale state from a previous session can't fire
+  _respawnTimer = 0; _gameOverTimer = 0; _gameOverAutoReturnTimer = 0;
   ship = new Ship(W / 2, H / 2);
   ship.invincible = INVINCIBILITY_DURATION;
   particles.clear();
@@ -117,8 +177,7 @@ function startGame() {
 
 function initMobileAndStart() {
   if (state !== STATE.INTRO) return;
-  MobileInput.init(keys, handleHyperspace);
-  startGame();
+  startGame(); // MobileInput.init() already called once at startup
 }
 
 function respawnShip() {
@@ -148,34 +207,16 @@ function handleHyperspace() {
 function killShip() {
   Sound.stopThrust();
   Sound.shipExplode();
-  particles.explode(ship.x, ship.y, 40, 60, 250, 1.5, '#f5c8a0');
+  // m-14: named explosion constants replace magic numbers
+  particles.explode(ship.x, ship.y, SHIP_EXPLODE_COUNT, SHIP_EXPLODE_SPEED_MIN, SHIP_EXPLODE_SPEED_MAX, SHIP_EXPLODE_LIFE, '#f5c8a0');
   ship.alive = false;
   lives--;
   if (lives <= 0) {
-    setTimeout(() => {
-      if (score > hiScore) hiScore = score;
-      Sound.stopBeat(); Sound.stopUFO();
-      leaveFullscreen();
-      state = STATE.GAME_OVER;
-      setTimeout(() => {
-        if (Math.random() < 0.33) {
-          state = STATE.AD;
-          showAd((wasClicked) => {
-            if (wasClicked) {
-              localStorage.setItem('doubleLifeNextGame', '1');
-              sponsorThanksTimer = 3.5;
-              state = STATE.SPONSOR_THANKS;
-            } else {
-              state = STATE.INTRO;
-            }
-          });
-        } else {
-          state = STATE.INTRO;
-        }
-      }, 2000);
-    }, 1500);
+    // C-2: was setTimeout(..., 1500) — now a dt-timer so it pauses with the game
+    _gameOverTimer = 1.5;
   } else {
-    setTimeout(respawnShip, 2000);
+    // C-2: was setTimeout(respawnShip, 2000) — now a dt-timer so it pauses with the game
+    _respawnTimer = 2.0;
   }
 }
 
@@ -203,7 +244,8 @@ function checkCollisions() {
         asteroids.push(...children);
         addScore(a.score);
         Sound.asteroidExplode(a.size);
-        particles.explode(a.x, a.y, a.size === 'large' ? 20 : a.size === 'medium' ? 12 : 7, 40, 160, 0.7, '#f5c8a0');
+        // m-14: named explosion constants
+        particles.explode(a.x, a.y, ASTEROID_EXPLODE_COUNTS[a.size], ASTEROID_EXPLODE_SPEED_MIN, ASTEROID_EXPLODE_SPEED_MAX, ASTEROID_EXPLODE_LIFE, '#f5c8a0');
         Sound.updateBeat(asteroids.length, totalForLevel(level));
         break;
       }
@@ -218,7 +260,7 @@ function checkCollisions() {
       if (overlaps(b.x, b.y, b.radius, ufo.x, ufo.y, ufo.radius)) {
         bullets.splice(bi, 1);
         addScore(ufo.score);
-        particles.explode(ufo.x, ufo.y, 16, 50, 200, 0.8, '#c8f0c8');
+        particles.explode(ufo.x, ufo.y, UFO_EXPLODE_COUNT, UFO_EXPLODE_SPEED_MIN, UFO_EXPLODE_SPEED_MAX, UFO_EXPLODE_LIFE, '#c8f0c8');
         Sound.asteroidExplode('medium');
         Sound.stopUFO();
         ufo = null;
@@ -314,6 +356,23 @@ function update(dt) {
     state = STATE.LEVEL_UP;
     levelUpTimer = LEVEL_UP_DELAY;
   }
+
+  // C-2: dt-based respawn/game-over timers — run inside update() so they pause with the game
+  if (_respawnTimer > 0) {
+    _respawnTimer -= dt;
+    if (_respawnTimer <= 0) { _respawnTimer = 0; respawnShip(); }
+  }
+  if (_gameOverTimer > 0) {
+    _gameOverTimer -= dt;
+    if (_gameOverTimer <= 0) {
+      _gameOverTimer = 0;
+      if (score > hiScore) hiScore = score;
+      Sound.stopBeat(); Sound.stopUFO();
+      leaveFullscreen();
+      state = STATE.GAME_OVER;
+      _gameOverAutoReturnTimer = 2.0;
+    }
+  }
 }
 
 function updateLevelUp(dt) {
@@ -324,6 +383,9 @@ function updateLevelUp(dt) {
     spawnLevel();
     if (!ship || !ship.alive) ship = new Ship(W / 2, H / 2);
     ship.invincible = INVINCIBILITY_DURATION;
+    // C-2 follow-up: clear pending death timers — edge case where ship dies as last asteroid
+    // is cleared causes these timers to fire mid-next-level if not reset here
+    _respawnTimer = 0; _gameOverTimer = 0;
     state = STATE.PLAYING;
   }
 }
@@ -631,7 +693,7 @@ function drawPause() {
   ctx.font = 'bold 64px "Courier New", monospace';
   ctx.fillText('PAUSED', W / 2, H / 2);
   ctx.font = '20px "Courier New", monospace';
-  ctx.fillText('ESC to resume', W / 2, H / 2 + 56);
+  ctx.fillText(IS_MOBILE ? 'Back button to resume' : 'ESC to resume', W / 2, H / 2 + 56);
   ctx.textAlign = 'left';
 }
 
@@ -674,6 +736,40 @@ function drawSponsorThanks() {
   ctx.textAlign = 'left';
 }
 
+// ── Capacitor: back button + background pause ─────────────────────────────────
+(function initCapacitorListeners() {
+  const plugins = window.Capacitor && window.Capacitor.Plugins;
+  if (!plugins) return;
+
+  const App = plugins.App;
+  if (App) {
+    // Hardware back button: pause when playing, resume when paused, else go to intro
+    App.addListener('backButton', () => {
+      if (state === STATE.PLAYING || state === STATE.LEVEL_UP) {
+        state = STATE.PAUSED;
+        Sound.stopBeat(); Sound.stopUFO(); Sound.stopThrust();
+        leaveFullscreen();
+      } else if (state === STATE.PAUSED) {
+        state = STATE.PLAYING;
+        Sound.startBeat(asteroids.length, totalForLevel(level));
+      } else if (state === STATE.GAME_OVER || state === STATE.SPONSOR_THANKS) {
+        state = STATE.INTRO;
+      } else if (state === STATE.INTRO) {
+        App.exitApp(); // allow Android users to back out to home screen from main menu
+      }
+    });
+
+    // App goes to background: pause game to stop audio and simulation
+    App.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive && state === STATE.PLAYING) {
+        state = STATE.PAUSED;
+        Sound.stopBeat(); Sound.stopUFO(); Sound.stopThrust();
+        leaveFullscreen();
+      }
+    });
+  }
+})();
+
 // ── Main loop ─────────────────────────────────────────────────────────────────
 function loop(timestamp) {
   requestAnimationFrame(loop);
@@ -690,7 +786,14 @@ function loop(timestamp) {
   else if (state === STATE.PLAYING)   { update(gameDt); drawScene(); }
   else if (state === STATE.PAUSED)    { drawScene(); drawPause(); }
   else if (state === STATE.LEVEL_UP)  { updateLevelUp(gameDt); drawScene(); drawLevelUp(); }
-  else if (state === STATE.GAME_OVER) { drawScene(); drawGameOver(); }
+  else if (state === STATE.GAME_OVER) {
+    // C-2: auto-return to INTRO is now a dt-timer (was nested setTimeout)
+    if (_gameOverAutoReturnTimer > 0) {
+      _gameOverAutoReturnTimer -= dt;
+      if (_gameOverAutoReturnTimer <= 0) { _gameOverAutoReturnTimer = 0; state = STATE.INTRO; }
+    }
+    drawScene(); drawGameOver();
+  }
   else if (state === STATE.SPONSOR_THANKS) {
     sponsorThanksTimer -= dt;
     drawSponsorThanks();

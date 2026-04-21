@@ -3,17 +3,25 @@ const Sound = (() => {
 
   function getCtx() {
     if (!_ctx) _ctx = new (window.AudioContext || window.webkitAudioContext)();
-    if (_ctx.state === 'suspended') _ctx.resume();
     return _ctx;
+  }
+
+  // Call once from a user-gesture handler to unblock the AudioContext.
+  function unlock() {
+    const c = getCtx();
+    if (c.state === 'suspended') c.resume();
   }
 
   // ── SFX ─────────────────────────────────────────────────────────────────────
 
   function whack() {
     const c = getCtx();
-    const buf = c.createBuffer(1, c.sampleRate * 0.08, c.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+    if (!_whackBuffer) {
+      _whackBuffer = c.createBuffer(1, Math.floor(c.sampleRate * 0.08), c.sampleRate);
+      const data = _whackBuffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+    }
+    const buf = _whackBuffer;
     const src = c.createBufferSource();
     src.buffer = buf;
     const filter = c.createBiquadFilter();
@@ -63,10 +71,12 @@ const Sound = (() => {
     osc.connect(gain); gain.connect(c.destination);
     osc.start(now); osc.stop(now + 0.28);
     // Short impact thud underneath
-    const buf  = c.createBuffer(1, c.sampleRate * 0.06, c.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
-    const src = c.createBufferSource(); src.buffer = buf;
+    if (!_ouchThudBuffer) {
+      _ouchThudBuffer = c.createBuffer(1, Math.floor(c.sampleRate * 0.06), c.sampleRate);
+      const data = _ouchThudBuffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+    }
+    const src = c.createBufferSource(); src.buffer = _ouchThudBuffer;
     const lp  = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 400;
     const g2  = c.createGain(); g2.gain.setValueAtTime(0.5, now);
     src.connect(lp); lp.connect(g2); g2.connect(c.destination);
@@ -161,11 +171,14 @@ const Sound = (() => {
     melVol: 0.13, bassVol: 0.11, melType: 'square',
   };
 
-  let _masterGain   = null;
-  let _musicPlaying = false;
-  let _nextLoopAt   = 0;
-  let _schedTimer   = null;
-  let _currentTrack = _T1;
+  let _masterGain     = null;
+  let _musicPlaying   = false;
+  let _nextLoopAt     = 0;
+  let _schedTimer     = null;
+  let _currentTrack   = _T1;
+  let _hatBuffer      = null; // M-1: cached noise buffer for hi-hat
+  let _whackBuffer    = null; // F-6: cached noise buffer for whack SFX
+  let _ouchThudBuffer = null; // F-6: cached noise buffer for ouch thud
 
   function _note(dest, freq, start, dur, vol, type) {
     const c   = getCtx();
@@ -194,10 +207,12 @@ const Sound = (() => {
 
   function _hat(dest, start) {
     const c   = getCtx();
-    const buf = c.createBuffer(1, Math.floor(c.sampleRate * 0.04), c.sampleRate);
-    const d   = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    const src = c.createBufferSource(); src.buffer = buf;
+    if (!_hatBuffer) {
+      _hatBuffer = c.createBuffer(1, Math.floor(c.sampleRate * 0.04), c.sampleRate);
+      const d = _hatBuffer.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const src = c.createBufferSource(); src.buffer = _hatBuffer;
     const f   = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 8000;
     const g   = c.createGain();
     g.gain.setValueAtTime(0.04, start);
@@ -227,7 +242,7 @@ const Sound = (() => {
       for (let step = 0; step < 8; step++) {
         const st = t + (bar * 4 + step * 0.5) * B;
         if (track.kick.includes(step)) _kick(dest, st);
-        _hat(dest, st);
+        if (track.hat.includes(step))  _hat(dest, st);
       }
     }
   }
@@ -264,12 +279,11 @@ const Sound = (() => {
     if (_masterGain) {
       const c = getCtx();
       _masterGain.gain.linearRampToValueAtTime(0, c.currentTime + 0.35);
-      setTimeout(() => {
-        try { _masterGain.disconnect(); } catch { /* ignore */ }
-        _masterGain = null;
-      }, 450);
+      const g = _masterGain;  // capture ref — _masterGain may change before timeout fires
+      _masterGain = null;
+      setTimeout(() => { try { g.disconnect(); } catch { /* ignore */ } }, 450);
     }
   }
 
-  return { whack, miss, escape, ouch, gameOver, comboUp, startMusic, stopMusic };
+  return { whack, miss, escape, ouch, gameOver, comboUp, startMusic, stopMusic, unlock };
 })();

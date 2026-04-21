@@ -328,6 +328,9 @@ const CLOUD_DEFS = [
 ];
 const clouds = CLOUD_DEFS.map(d => ({ ...d }));
 
+// Cached offscreen canvas for static ground texture dots (m-6)
+let _groundCanvas = null, _groundW = 0, _groundH = 0;
+
 // Score popups
 let scorePopups = [];
 
@@ -344,17 +347,38 @@ let icbmSpawnTimer   = 0;
 let cruiseSpawnTimer = 0;
 let prepauseState    = GS.PLAYING;
 
+// Safe localStorage wrappers — prevent crash in Safari Private Browsing (C-1)
+function safeLocalGet(key, def) { try { return localStorage.getItem(key) ?? def; } catch { return def; } }
+function safeLocalSet(key, val) { try { localStorage.setItem(key, val); } catch { /* ignore */ } }
+
 // Persistent high score
-let highScore = parseInt(localStorage.getItem('wwwamHighScore') || '0', 10);
+let highScore = parseInt(safeLocalGet('wwwamHighScore', '0'), 10);
+
+// ---- Pause toggle (Escape, back button, browser back arrow) ----
+function _togglePause() {
+  if (state === GS.PLAYING) {
+    prepauseState = state;
+    state = GS.PAUSED;
+    Sound.stopMusic();
+  } else if (state === GS.PAUSED) {
+    state = prepauseState;
+    Sound.startMusic(currentLevel);
+  }
+}
 
 // ---- Init ----
 window.addEventListener('DOMContentLoaded', () => {
   canvas = document.getElementById('gameCanvas');
   ctx = canvas.getContext('2d');
   resizeCanvas();
-  window.addEventListener('resize', resizeCanvas);
+  let _resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(_resizeTimer);
+    _resizeTimer = setTimeout(resizeCanvas, 150);
+  });
 
   canvas.addEventListener('click', e => {
+    Sound.unlock();
     const r = canvas.getBoundingClientRect();
     const sx = canvas.width  / r.width;
     const sy = canvas.height / r.height;
@@ -363,6 +387,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   canvas.addEventListener('touchstart', e => {
     e.preventDefault();
+    Sound.unlock();
     const r = canvas.getBoundingClientRect();
     const sx = canvas.width  / r.width;
     const sy = canvas.height / r.height;
@@ -371,14 +396,35 @@ window.addEventListener('DOMContentLoaded', () => {
   }, { passive: false });
 
   window.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
+    if (e.key === 'Escape') _togglePause();
+  });
+
+  // ── Back button / browser back arrow → pause ────────────────────────────
+  // Push a dummy history entry so back never navigates away from the game
+  history.pushState({ gameActive: true }, '');
+  window.addEventListener('popstate', () => {
+    history.pushState({ gameActive: true }, ''); // keep the entry alive
+    _togglePause();
+  });
+  // Android (Capacitor App plugin)
+  if (window.Capacitor?.Plugins?.App) {
+    window.Capacitor.Plugins.App.addListener('backButton', _togglePause);
+  }
+
+  let _autoPaused = false;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
       if (state === GS.PLAYING) {
         prepauseState = state;
         state = GS.PAUSED;
         Sound.stopMusic();
-      } else if (state === GS.PAUSED) {
+        _autoPaused = true;
+      }
+    } else {
+      if (_autoPaused && state === GS.PAUSED) {
         state = prepauseState;
         Sound.startMusic(currentLevel);
+        _autoPaused = false;
       }
     }
   });
@@ -472,8 +518,8 @@ if (state === GS.PLAYING) {
   } else if (state === GS.GAME_OVER) {
     gameOverTimer -= dt;
     if (gameOverTimer <= 0) {
-      state = GS.AD;
-      if (Math.random() < 0.5) {
+      if (Math.random() < 0) { // ads disabled for v1.0 — re-enable after AdMob approval
+        state = GS.AD;  // only enter AD state when actually showing an ad
         Ads.show(() => { prepareNextLevel(); }, 'Next Level \u25B6');
       } else {
         prepareNextLevel();
@@ -488,9 +534,9 @@ if (state === GS.PLAYING) {
 // ── Mole update helpers ──────────────────────────────────────────────────────
 function _updateMoles(dt) {
   for (const m of moles) {
-    const wasUp = m.state === 1 || m.state === 2;
+    const wasUp = m.state === STATE.RISING || m.state === STATE.UP;
     m.update(dt);
-    if (wasUp && m.state === 0 && m.escaped) {
+    if (wasUp && m.state === STATE.DOWN && m.escaped) {
       Sound.escape();
     }
   }
@@ -576,7 +622,7 @@ function _runCruiseScheduler(dt) {
 function endGame() {
   if (score > highScore) {
     highScore = score;
-    localStorage.setItem('wwwamHighScore', String(highScore));
+    safeLocalSet('wwwamHighScore', String(highScore));
   }
   state = GS.GAME_OVER;
   gameOverTimer = 2000;
@@ -593,7 +639,7 @@ function prepareNextLevel() {
   cruises          = [];
   icbmSpawnTimer   = 1500;
   cruiseSpawnTimer = 8000;
-  for (const m of moles) { m.state = 0; m.progress = 0; m.escaped = false; }
+  for (const m of moles) { m.state = STATE.DOWN; m.progress = 0; m.escaped = false; m.flashProgress = 0; m.particles = []; }
   trump.grinning = false;
   // MAGA hat: 33% chance on levels above 3
   trump.wearingHat = currentLevel > 3 && Math.random() < 0.33;
@@ -611,7 +657,7 @@ function resetGame() {
   cruises      = [];
   icbmSpawnTimer   = 0;
   cruiseSpawnTimer = 0;
-  for (const m of moles) { m.state = 0; m.progress = 0; m.escaped = false; }
+  for (const m of moles) { m.state = STATE.DOWN; m.progress = 0; m.escaped = false; m.flashProgress = 0; m.particles = []; }
   trump.grinning = false;
   trump.wearingHat = false;
   state = GS.INTRO;
@@ -626,6 +672,11 @@ function handleHit(cx, cy) {
   }
   if (state === GS.LEVEL_INTRO) {
     state = GS.PLAYING;
+    Sound.startMusic(currentLevel);
+    return;
+  }
+  if (state === GS.PAUSED) {
+    state = prepauseState;
     Sound.startMusic(currentLevel);
     return;
   }
@@ -679,7 +730,7 @@ function handleHit(cx, cy) {
     const holeRx = Math.min(canvas.width, canvas.height) * 0.075;
     const headR  = holeRx * 0.82;
     for (const m of moles) {
-      if (m.state === 1 || m.state === 2) {
+      if (m.state === STATE.RISING || m.state === STATE.UP) {
         const headY = m.y - m.progress * headR * 1.85;
         const dx = cx - m.x; const dy = cy - headY;
         if (Math.sqrt(dx*dx + dy*dy) < headR) {
@@ -706,11 +757,11 @@ function drawScene() {
   const w = canvas.width, h = canvas.height;
   ctx.clearRect(0, 0, w, h);
 
-  // Screen shake
+  // Screen shake — always save/restore so any early exit can't leave the transform stuck
+  ctx.save();
   const shaking = shakeAmount > 0 && shakeDuration > 0;
   if (shaking) {
     const decay = shakeAmount * (shakeDuration / 260);
-    ctx.save();
     ctx.translate((Math.random()*2-1)*decay, (Math.random()*2-1)*decay);
   }
 
@@ -723,14 +774,21 @@ function drawScene() {
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
 
-  // Ground texture dots
-  ctx.fillStyle = 'rgba(0,0,0,0.04)';
-  for (let gx = 0; gx < w; gx += 30)
-    for (let gy = h * 0.52; gy < h; gy += 30) {
-      ctx.beginPath();
-      ctx.arc(gx+15, gy+15, 4, 0, Math.PI*2);
-      ctx.fill();
-    }
+  // Ground texture dots — rendered once to an offscreen canvas, reused every frame
+  if (!_groundCanvas || _groundW !== w || _groundH !== h) {
+    _groundCanvas = document.createElement('canvas');
+    _groundCanvas.width = w; _groundCanvas.height = h;
+    const gCtx = _groundCanvas.getContext('2d');
+    gCtx.fillStyle = 'rgba(0,0,0,0.04)';
+    for (let gx = 0; gx < w; gx += 30)
+      for (let gy = h * 0.52; gy < h; gy += 30) {
+        gCtx.beginPath();
+        gCtx.arc(gx+15, gy+15, 4, 0, Math.PI*2);
+        gCtx.fill();
+      }
+    _groundW = w; _groundH = h;
+  }
+  ctx.drawImage(_groundCanvas, 0, 0);
 
   // Parallax clouds (sky layer, before world map)
   _drawClouds(ctx, w, h);
@@ -793,7 +851,7 @@ function drawScene() {
   else if (state === GS.PAUSED)       { drawHUD(w, h); drawPaused(w, h); }
   else if (state === GS.GAME_OVER)    drawGameOver(w, h);
 
-  if (shaking) ctx.restore();
+  ctx.restore();  // matches unconditional ctx.save() at top of drawScene
 }
 
 function drawHUD(w, h) {
@@ -857,7 +915,8 @@ function drawPaused(w, h) {
   ctx.shadowBlur = 0;
   ctx.font      = `${fs * 0.55}px Arial`;
   ctx.fillStyle = '#cccccc';
-  ctx.fillText('Press ESC to resume', w / 2, h * 0.55);
+  const resumeHint = window.Capacitor ? 'Tap or press Back to resume' : 'Tap or press ESC to resume';
+  ctx.fillText(resumeHint, w / 2, h * 0.55);
   ctx.restore();
 }
 
@@ -920,7 +979,7 @@ function drawGameOver(w, h) {
   }
   ctx.font = `${fs * 0.52}px Arial`;
   ctx.fillStyle = '#aaa';
-  ctx.fillText('Ad coming up…', w/2, h*0.63);
+  if (Ads.isEnabled()) ctx.fillText('Ad coming up…', w/2, h*0.63);
   ctx.restore();
 }
 

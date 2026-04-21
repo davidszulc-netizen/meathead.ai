@@ -87,7 +87,8 @@ function _onMouseUp(e) {
   if (dist < MOUSE_CLICK_MAX_DIST && dur * 1000 < MOUSE_CLICK_MAX_DURATION) {
     // ── Click → aim + fire ──
     s.targetAngle = _angleFromShipTo(e.clientX, e.clientY);
-    _triggerFire();
+    // Mirror of mobile M-4 fix: fireImmediate() in main.js, shared by both input modules
+    if (typeof fireImmediate === 'function') fireImmediate();
 
   } else if (dist >= MOUSE_DRAG_MIN_DIST) {
     // ── Drag → aim + thrust impulse ──

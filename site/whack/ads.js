@@ -1,4 +1,6 @@
 const Ads = (() => {
+  const ENABLED = false; // set true when AdMob account is approved & ready
+
   let _onDone     = null;
   let _timerHandle = null;
   let _admobReady  = false;
@@ -84,6 +86,7 @@ const Ads = (() => {
 
   // ── Public API ────────────────────────────────────────────────────────────
   function show(onDone, nextLabel) {
+    if (!ENABLED) { if (onDone) onDone(); return; }
     if (_isNative()) {
       _showNative(onDone);
     } else {
@@ -101,5 +104,5 @@ const Ads = (() => {
     if (_isNative()) _initAdMob();
   });
 
-  return { show, hide };
+  return { show, hide, isEnabled: () => ENABLED };
 })();

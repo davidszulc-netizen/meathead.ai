@@ -19,8 +19,8 @@ class Particle {
   }
 
   draw(ctx) {
+    // m-4: inline alpha — no per-particle save()/restore(); ParticleSystem.draw() resets globalAlpha
     const alpha = Math.max(0, this.life / this.maxLife);
-    ctx.save();
     ctx.globalAlpha = alpha;
     ctx.strokeStyle = this.colour;
     ctx.lineWidth = 1;
@@ -29,17 +29,21 @@ class Particle {
     ctx.lineTo(this.x + this.vx * 0.1 * this.length * alpha,
                this.y + this.vy * 0.1 * this.length * alpha);
     ctx.stroke();
-    ctx.restore();
   }
 
   get dead() { return this.life <= 0; }
 }
 
+// m-6: Hard cap prevents unbounded particle count from simultaneous explosions on low-end devices
+const MAX_PARTICLES = 200;
+
 class ParticleSystem {
   constructor() { this.particles = []; }
 
   explode(x, y, count = 20, speedMin = 50, speedMax = 180, life = 0.8, colour = '#c8f0c8') {
-    for (let i = 0; i < count; i++) {
+    // m-6: only spawn up to the remaining capacity
+    const spawnCount = Math.min(count, MAX_PARTICLES - this.particles.length);
+    for (let i = 0; i < spawnCount; i++) {
       const angle = Math.random() * Math.PI * 2;
       const speed = speedMin + Math.random() * (speedMax - speedMin);
       this.particles.push(new Particle(x, y, angle, speed, life * (0.5 + Math.random() * 0.5), colour));
@@ -53,7 +57,10 @@ class ParticleSystem {
     }
   }
 
-  draw(ctx) { for (const p of this.particles) p.draw(ctx); }
+  draw(ctx) {
+    for (const p of this.particles) p.draw(ctx);
+    ctx.globalAlpha = 1; // m-4: restore after batch particle draw (particles set inline alpha)
+  }
 
   clear() { this.particles = []; }
 }
