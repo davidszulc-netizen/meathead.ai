@@ -186,6 +186,7 @@ function startGame() {
   spawnLevel();
   state = STATE.PLAYING;
   enterFullscreen();
+  if (!window.Capacitor && IS_MOBILE) history.pushState({ gameActive: true }, '');
 }
 
 function initMobileAndStart() {
@@ -580,9 +581,11 @@ function drawInstructionsPanel() {
   ctx.fillStyle = '#fff';
   ctx.textAlign = 'center';
 
-  // Cream tube above panel on mobile — 2× scale so it reads as clear branding
+  // Cream tube above panel
   if (IS_MOBILE) {
     _tutCreamBottle(W / 2, py - 65, 0, 5.25, 1);
+  } else {
+    _tutCreamBottle(W / 2, py - 52, 0, 3.5, 1);
   }
 
   const subtitleY = IS_MOBILE ? py + 8 : py + 68;
@@ -1253,6 +1256,22 @@ function drawTutorial() {
   }
 })();
 
+// ── Browser (non-Capacitor) mobile back button → pause ────────────────────────
+(function initBrowserBackButton() {
+  if (window.Capacitor || !IS_MOBILE) return;
+  window.addEventListener('popstate', () => {
+    if (state === STATE.PLAYING || state === STATE.LEVEL_UP) {
+      state = STATE.PAUSED;
+      Sound.stopBeat(); Sound.stopUFO(); Sound.stopThrust();
+      leaveFullscreen();
+      history.pushState({ gameActive: true }, ''); // re-arm for next back press
+    } else if (state === STATE.PAUSED) {
+      state = STATE.INTRO;
+      leaveFullscreen();
+    }
+  });
+})();
+
 // ── Main loop ─────────────────────────────────────────────────────────────────
 function loop(timestamp) {
   requestAnimationFrame(loop);
@@ -1261,6 +1280,9 @@ function loop(timestamp) {
 
   blinkTimer += dt;
   if (blinkTimer >= 0.5) { blinkTimer = 0; blinkOn = !blinkOn; }
+
+  const playing = state === STATE.PLAYING || state === STATE.LEVEL_UP;
+  document.body.classList.toggle('is-playing', playing);
 
   // 30% slower simulation on mobile
   const gameDt = IS_MOBILE ? dt * 0.7 : dt;
