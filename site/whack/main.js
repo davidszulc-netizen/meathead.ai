@@ -1,5 +1,5 @@
 // ---- State constants ----
-const GS = { INTRO: 0, PLAYING: 1, GAME_OVER: 2, AD: 3, LEVEL_INTRO: 4, PAUSED: 5 };
+const GS = { INTRO: 0, PLAYING: 1, GAME_OVER: 2, LEVEL_INTRO: 4, PAUSED: 5 };
 const GAME_DURATION = 60000; // ms
 
 // Pentagon center (shared by world map, trump, and hole layout)
@@ -379,6 +379,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   canvas.addEventListener('click', e => {
     Sound.unlock();
+    if (state === GS.PAUSED) { _togglePause(); return; }
     const r = canvas.getBoundingClientRect();
     const sx = canvas.width  / r.width;
     const sy = canvas.height / r.height;
@@ -388,6 +389,7 @@ window.addEventListener('DOMContentLoaded', () => {
   canvas.addEventListener('touchstart', e => {
     e.preventDefault();
     Sound.unlock();
+    if (state === GS.PAUSED) { _togglePause(); return; }
     const r = canvas.getBoundingClientRect();
     const sx = canvas.width  / r.width;
     const sy = canvas.height / r.height;
@@ -406,9 +408,17 @@ window.addEventListener('DOMContentLoaded', () => {
     history.pushState({ gameActive: true }, ''); // keep the entry alive
     _togglePause();
   });
-  // Android (Capacitor App plugin)
+  // Android (Capacitor App plugin): pause when playing, exit when paused
   if (window.Capacitor?.Plugins?.App) {
-    window.Capacitor.Plugins.App.addListener('backButton', _togglePause);
+    window.Capacitor.Plugins.App.addListener('backButton', () => {
+      if (state === GS.PLAYING) {
+        prepauseState = state;
+        state = GS.PAUSED;
+        Sound.stopMusic();
+      } else if (state === GS.PAUSED) {
+        window.Capacitor.Plugins.App.exitApp();
+      }
+    });
   }
 
   let _autoPaused = false;
@@ -518,12 +528,7 @@ if (state === GS.PLAYING) {
   } else if (state === GS.GAME_OVER) {
     gameOverTimer -= dt;
     if (gameOverTimer <= 0) {
-      if (Math.random() < 0) { // ads disabled for v1.0 — re-enable after AdMob approval
-        state = GS.AD;  // only enter AD state when actually showing an ad
-        Ads.show(() => { prepareNextLevel(); }, 'Next Level \u25B6');
-      } else {
-        prepareNextLevel();
-      }
+      prepareNextLevel();
     }
   } else {
     // INTRO / LEVEL_INTRO — keep moles bobbing in background
@@ -915,7 +920,7 @@ function drawPaused(w, h) {
   ctx.shadowBlur = 0;
   ctx.font      = `${fs * 0.55}px Arial`;
   ctx.fillStyle = '#cccccc';
-  const resumeHint = window.Capacitor ? 'Tap or press Back to resume' : 'Tap or press ESC to resume';
+  const resumeHint = window.Capacitor ? 'Tap to resume  •  Back to quit' : 'Tap or press ESC to resume';
   ctx.fillText(resumeHint, w / 2, h * 0.55);
   ctx.restore();
 }
@@ -979,7 +984,6 @@ function drawGameOver(w, h) {
   }
   ctx.font = `${fs * 0.52}px Arial`;
   ctx.fillStyle = '#aaa';
-  if (Ads.isEnabled()) ctx.fillText('Ad coming up…', w/2, h*0.63);
   ctx.restore();
 }
 
