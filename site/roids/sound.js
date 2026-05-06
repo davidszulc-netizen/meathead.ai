@@ -122,7 +122,7 @@ const Sound = (() => {
         thrustGain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.1);
         thrustNode.stop(c.currentTime + 0.1);
       }
-    } catch { /* AudioContext may throw if already stopped — safe to ignore */ }
+    } catch (e) { console.warn('stopThrust AudioContext error:', e); }
     thrustNode = null;
     thrustGain = null;
   }
@@ -192,7 +192,7 @@ const Sound = (() => {
   function unlock() {
     const c = getCtx();
     // Resume here only — this is always called from a user gesture event handler
-    if (c && c.state === 'suspended') c.resume().catch(() => {});
+    if (c && c.state === 'suspended') c.resume().catch(e => console.warn('AudioContext.resume failed:', e));
     _getThrustBuffer(); // C-1: pre-warm the thrust buffer on first user interaction
   }
 

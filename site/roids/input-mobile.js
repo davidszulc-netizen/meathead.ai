@@ -89,7 +89,13 @@ function onTouchEnd(e) {
   if (!t) return;
   _touchId = null;
 
-  if (typeof state === 'undefined' || state !== STATE.PLAYING) return;
+  if (typeof state === 'undefined') return;
+  if (state === STATE.PAUSED) {
+    state = STATE.PLAYING;
+    Sound.startBeat(asteroids.length, totalForLevel(level));
+    return;
+  }
+  if (state !== STATE.PLAYING) return;
 
   const s = getShip();
   if (!s || !s.alive) return;

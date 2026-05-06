@@ -42,9 +42,9 @@ window.addEventListener('resize', () => {
 resize();
 
 // M-6: localStorage helpers — try/catch guards against SecurityError in Safari Incognito
-function safeLocalGet(key)      { try { return localStorage.getItem(key);    } catch { return null; } }
-function safeLocalSet(key, val) { try { localStorage.setItem(key, val);      } catch { /* ignored */ } }
-function safeLocalRemove(key)   { try { localStorage.removeItem(key);        } catch { /* ignored */ } }
+function safeLocalGet(key)      { try { return localStorage.getItem(key);    } catch (e) { console.warn('localStorage.getItem failed:', e); return null; } }
+function safeLocalSet(key, val) { try { localStorage.setItem(key, val);      } catch (e) { console.warn('localStorage.setItem failed:', e); } }
+function safeLocalRemove(key)   { try { localStorage.removeItem(key);        } catch (e) { console.warn('localStorage.removeItem failed:', e); } }
 
 // ── Mobile detection ──────────────────────────────────────────────────────────
 function isMobile() {
@@ -55,8 +55,7 @@ const IS_MOBILE = isMobile();
 
 // ── State machine ─────────────────────────────────────────────────────────────
 const STATE = { INTRO:'INTRO', PLAYING:'PLAYING', PAUSED:'PAUSED',
-                LEVEL_UP:'LEVEL_UP', GAME_OVER:'GAME_OVER', AD:'AD',
-                SPONSOR_THANKS:'SPONSOR_THANKS' };
+                LEVEL_UP:'LEVEL_UP', GAME_OVER:'GAME_OVER', TUTORIAL:'TUTORIAL' };
 let state = STATE.INTRO;
 
 // ── Input ─────────────────────────────────────────────────────────────────────
@@ -85,7 +84,22 @@ if (IS_MOBILE) {
   canvas.addEventListener('touchstart', e => {
     e.preventDefault();
     Sound.unlock();
-    if (state === STATE.INTRO) startGame();
+    if (state === STATE.TUTORIAL) tutNext();
+    else if (state === STATE.INTRO) {
+      const t0 = e.touches[0];
+      const tx = t0 ? t0.clientX : 0;
+      const ty = t0 ? t0.clientY : 0;
+      if (IS_MOBILE && tx > W * 0.70 && ty < 60) {
+        // Help button — re-show tutorial from step 0
+        _tutStep = 0; _tutT = 0; _tutCycles = 0;
+        state = STATE.TUTORIAL;
+      } else if (IS_MOBILE && !safeLocalGet('tutorialSeen')) {
+        _tutStep = 0; _tutT = 0; _tutCycles = 0;
+        state = STATE.TUTORIAL;
+      } else {
+        startGame();
+      }
+    }
   }, { passive: false });
 }
 
@@ -109,7 +123,6 @@ function leaveFullscreen() {
 // ── Game vars ─────────────────────────────────────────────────────────────────
 let score = 0, hiScore = 0, lives = 3, level = 1, extraLifeAt = 10000;
 let doubleLifeMode = false;
-let sponsorThanksTimer = 0;
 let ship = null, asteroids = [], bullets = [], ufo = null;
 let particles = new ParticleSystem();
 let ufoTimer = 0;
@@ -446,7 +459,7 @@ function drawHUD() {
     ctx.font         = 'bold 7px sans-serif';
     ctx.textAlign    = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('roids', -1, 0);
+    ctx.fillText('ROIDS', -1, 0);
 
     ctx.restore();
   }
@@ -495,8 +508,9 @@ function drawStarfield() {
 
 function drawIntroButt() {
   const targetRadius = Math.min(W, H) * 0.28;
-  const cx = W * 0.62;
-  const cy = H * 0.54;
+  const panelBottom = H / 2 + (IS_MOBILE ? 155 : 160);
+  const cx = W / 2;
+  const cy = Math.min(panelBottom + targetRadius * 0.5, H - targetRadius - 8);
   const cacheSize = Math.ceil(targetRadius * 3);
 
   if (!_asteroidCache
@@ -566,15 +580,18 @@ function drawInstructionsPanel() {
   ctx.fillStyle = '#fff';
   ctx.textAlign = 'center';
 
-  ctx.font = 'bold 52px "Courier New", monospace';
-  ctx.fillText('ROIDS', W / 2, py + 68);
+  // Cream tube above panel on mobile — 2× scale so it reads as clear branding
+  if (IS_MOBILE) {
+    _tutCreamBottle(W / 2, py - 65, 0, 5.25, 1);
+  }
 
-  ctx.font = '16px "Courier New", monospace';
+  const subtitleY = IS_MOBILE ? py + 8 : py + 68;
+  ctx.font = '24px "Courier New", monospace';
   ctx.fillStyle = '#f5c8a0';
-  ctx.fillText('Maximum Relief Edition', W / 2, py + 92);
+  ctx.fillText('Maximum Relief Edition', W / 2, subtitleY);
 
-  ctx.font = '15px "Courier New", monospace';
-  ctx.fillStyle = '#aaa';
+  ctx.font = '17px "Courier New", monospace';
+  ctx.fillStyle = '#ddd';
   const lines = IS_MOBILE
     ? [
         'TAP           Aim + Fire',
@@ -589,16 +606,27 @@ function drawInstructionsPanel() {
         'LEFT CLICK       Aim + Fire',
         'ESC              Pause',
       ];
+  const ctrlY0 = IS_MOBILE ? subtitleY + 32 : py + 110;
+
+  // Help button — upper-right corner of screen (visible above panel)
+  if (IS_MOBILE) {
+    ctx.save();
+    ctx.textAlign    = 'right';
+    ctx.font         = '30px "Courier New", monospace';
+    ctx.fillStyle    = 'rgba(255,255,255,0.65)';
+    ctx.fillText('? Help', W - 16, 42);
+    ctx.restore();
+  }
   ctx.textAlign = 'left';
   lines.forEach((line, i) => {
-    ctx.fillText(line, px + 24, py + 110 + i * 28);
+    ctx.fillText(line, px + 24, ctrlY0 + i * 28);
   });
   ctx.textAlign = 'center';
 
   if (IS_MOBILE && blinkOn) {
     ctx.fillStyle = '#fff';
     ctx.font = '20px "Courier New", monospace';
-    ctx.fillText('— TAP TO START —', W / 2, py + panelH - 36);
+    ctx.fillText('— TOUCH TO START —', W / 2, py + panelH - 36);
   }
 
   if (hiScore > 0) {
@@ -693,7 +721,12 @@ function drawPause() {
   ctx.font = 'bold 64px "Courier New", monospace';
   ctx.fillText('PAUSED', W / 2, H / 2);
   ctx.font = '20px "Courier New", monospace';
-  ctx.fillText(IS_MOBILE ? 'Back button to resume' : 'ESC to resume', W / 2, H / 2 + 56);
+  if (IS_MOBILE) {
+    ctx.fillText('Tap screen to resume', W / 2, H / 2 + 48);
+    ctx.fillText('Back < to Quit', W / 2, H / 2 + 76);
+  } else {
+    ctx.fillText('ESC to resume', W / 2, H / 2 + 56);
+  }
   ctx.textAlign = 'left';
 }
 
@@ -719,21 +752,469 @@ function drawGameOver() {
   ctx.textAlign = 'left';
 }
 
-function drawSponsorThanks() {
-  ctx.fillStyle = 'rgba(0,0,0,0.88)';
-  ctx.fillRect(0, 0, W, H);
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#f5c8a0';
-  ctx.font = 'bold 26px "Courier New", monospace';
-  ctx.fillText('THANK YOU FOR VISITING', W / 2, H / 2 - 60);
-  ctx.fillText('OUR SPONSOR!', W / 2, H / 2 - 20);
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 22px "Courier New", monospace';
-  ctx.fillText('\u2605 DOUBLE LIFE MODE ENABLED \u2605', W / 2, H / 2 + 40);
-  ctx.fillStyle = '#aaa';
-  ctx.font = '16px "Courier New", monospace';
-  ctx.fillText('Your next game starts with 6 lives', W / 2, H / 2 + 76);
-  ctx.textAlign = 'left';
+
+// ── Tutorial (first-run onboarding, mobile only) ──────────────────────────────
+
+let _tutStep = 0, _tutT = 0, _tutCycles = 0;
+const TUT_STEP_DUR    = 4.0;
+const TUT_SHOW_PROMPT = 2;
+
+function tutNext() {
+  _tutStep++; _tutT = 0; _tutCycles = 0;
+  if (_tutStep >= 3) { safeLocalSet('tutorialSeen', '1'); state = STATE.INTRO; }
+}
+
+function updateTutorial(dt) {
+  _tutT += dt;
+  if (_tutT >= TUT_STEP_DUR) { _tutT -= TUT_STEP_DUR; _tutCycles++; }
+}
+
+// Cream bottle for tutorial scenes — matches HUD lives indicator.
+// angle: nozzle (+X side) points in this direction; scale defaults to 2.5.
+function _tutCreamBottle(x, y, angle, scale, alpha) {
+  const sc = scale ?? 2.5;
+  ctx.save();
+  ctx.globalAlpha = alpha ?? 1;
+  ctx.translate(x, y);
+  ctx.rotate(angle ?? 0);
+  ctx.scale(sc, sc);
+
+  ctx.fillStyle   = '#d4f0d4';
+  ctx.strokeStyle = '#aaddaa';
+  ctx.lineWidth   = 1.5 / sc;
+  ctx.beginPath();
+  ctx.roundRect(-14, -7, 28, 14, 4);
+  ctx.fill(); ctx.stroke();
+
+  ctx.fillStyle   = '#fff';
+  ctx.strokeStyle = '#ccc';
+  ctx.beginPath();
+  ctx.roundRect(14, -4, 8, 8, 2);
+  ctx.fill(); ctx.stroke();
+
+  ctx.strokeStyle = '#aaddaa';
+  ctx.lineWidth   = 1 / sc;
+  for (const dx of [0, -3]) {
+    ctx.beginPath();
+    ctx.moveTo(-14 + dx, -6);
+    ctx.lineTo(-14 + dx,  6);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle    = '#2a6e2a';
+  ctx.font         = 'bold 7px sans-serif';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('ROIDS', -1, 0);
+
+  ctx.restore();
+}
+
+// Exact Asteroid.draw() replica so tutorial matches in-game look
+function _tutRealAst(x, y, r, rot, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha ?? 1;
+  ctx.translate(x, y);
+  ctx.rotate(rot ?? 0);
+  ctx.strokeStyle = '#f5c8a0';
+  ctx.lineWidth   = 1.5;
+  ctx.fillStyle   = 'rgba(245,200,160,0.15)';
+  ctx.beginPath();
+  ctx.moveTo(0, -r*0.50);
+  ctx.bezierCurveTo( r*0.18,-r*0.80,  r*0.82,-r*0.62,  r*0.86,-r*0.05);
+  ctx.bezierCurveTo( r*0.90, r*0.38,  r*0.52, r*0.76,  0,       r*0.82);
+  ctx.bezierCurveTo(-r*0.52, r*0.76, -r*0.90, r*0.38, -r*0.86, -r*0.05);
+  ctx.bezierCurveTo(-r*0.82,-r*0.62, -r*0.18,-r*0.80,  0,      -r*0.50);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0, -r*0.50);
+  ctx.quadraticCurveTo(r*0.04, r*0.10, 0, r*0.44);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Touch-point indicator for tutorial gestures.
+// Shows one or two contact dots at (tipX, tipY).
+// twoFinger: dots are separated along the local X axis so they stack
+//            correctly after rotation (e.g. rotation=-PI/2 → side by side on screen).
+function _tutHand(tipX, tipY, rotation, twoFinger, alpha) {
+  ctx.save();
+  ctx.translate(tipX, tipY);
+  ctx.rotate(rotation ?? 0);
+  ctx.globalAlpha = alpha ?? 1;
+
+  function dot(lx, ly) {
+    ctx.beginPath();
+    ctx.arc(lx, ly, 16, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.82)';
+    ctx.lineWidth   = 2.5;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(lx, ly, 6, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.fill();
+  }
+
+  if (twoFinger) {
+    dot(-14, 0);
+    dot( 14, 0);
+  } else {
+    dot(0, 0);
+  }
+
+  ctx.restore();
+}
+
+// Swipe trail; returns the current tip position {tx,ty} for hand placement
+function _tutTrail(x0, y0, x1, y1, progress, alpha) {
+  const tx = x0 + (x1 - x0) * progress;
+  const ty = y0 + (y1 - y0) * progress;
+  ctx.save();
+  const grad = ctx.createLinearGradient(x0, y0, tx, ty);
+  grad.addColorStop(0, 'rgba(200,220,255,0)');
+  grad.addColorStop(1, `rgba(200,220,255,${alpha * 0.45})`);
+  ctx.strokeStyle = grad;
+  ctx.lineWidth   = 16;
+  ctx.lineCap     = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x0, y0);
+  ctx.lineTo(tx, ty);
+  ctx.stroke();
+  ctx.restore();
+  return { tx, ty };
+}
+
+function _tutLabel(line1, line2) {
+  ctx.save();
+  ctx.textAlign   = 'center';
+  ctx.shadowColor = 'rgba(0,0,0,0.9)';
+  ctx.shadowBlur  = 12;
+  ctx.fillStyle   = '#fff';
+  ctx.font        = 'bold 34px "Courier New", monospace';
+  ctx.fillText(line1, W / 2, 70);
+  if (line2) {
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.font      = '22px "Courier New", monospace';
+    ctx.fillText(line2, W / 2, 100);
+  }
+  ctx.restore();
+}
+
+function _tutNav(showContinue) {
+  ctx.save();
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath();
+    ctx.arc(W / 2 + (i - 1) * 22, 28, 6, 0, Math.PI * 2);
+    ctx.fillStyle = i === _tutStep ? '#fff' : 'rgba(255,255,255,0.28)';
+    ctx.fill();
+  }
+  ctx.shadowColor = 'rgba(0,0,0,0.8)';
+  ctx.shadowBlur  = 8;
+  ctx.fillStyle   = 'rgba(255,255,255,0.35)';
+  ctx.textAlign   = 'right';
+  ctx.font        = '14px "Courier New", monospace';
+  ctx.fillText('Back to skip', W - 16, 24);
+  if (showContinue && blinkOn) {
+    ctx.fillStyle = 'rgba(255,255,255,0.80)';
+    ctx.textAlign = 'center';
+    ctx.font      = '18px "Courier New", monospace';
+    ctx.fillText('Tap to continue →', W / 2, H - 84);
+  }
+  ctx.restore();
+}
+
+// ── Step 0: TAP — Aim + Fire (moving asteroid, three sequential taps) ──────────
+function _tutStep0() {
+  const p = _tutT / TUT_STEP_DUR;
+  const T = _tutT;
+
+  // Fast background asteroids
+  _tutRealAst(W*0.82 - T*W*0.22, H*0.14, 13, T*0.9,  0.40);
+  _tutRealAst(W*0.10 + T*W*0.19, H*0.58, 11, -T*1.1, 0.36);
+  _tutRealAst(W*0.68 - T*W*0.17, H*0.80, 16, T*0.7,  0.42);
+  _tutRealAst(W*0.35 + T*W*0.24, H*0.20, 9,  -T*1.3, 0.34);
+  _tutRealAst(W*0.90 - T*W*0.26, H*0.50, 14, T*1.0,  0.38);
+  _tutRealAst(W*0.15 + T*W*0.21, H*0.70, 10, -T*0.8, 0.32);
+
+  // Asteroid drifts right; position is deterministic from _tutT
+  const AST_SPEED = W * 0.068;
+  const AST_R     = 22;
+  const AST_Y     = H * 0.36;
+  const astX      = W * 0.26 + AST_SPEED * _tutT;
+  const astRot    = _tutT * 0.35;
+
+  // Fixed tap target: where the asteroid is at the third-tap moment. All three
+  // taps land at this same spot — asteroid drifts in from the left, third bullet
+  // makes kill contact. Ship aims at the fixed point throughout (no chasing).
+  const TAP_P    = [0.12, 0.38, 0.64];
+  const NOZZLE_DIST = 22 * 0.6;
+  // fixTapX is where the asteroid IS when the third bullet ARRIVES (tapP+travel).
+  // Bullets 1 and 2 hit empty space ahead; only bullet 3 coincides with the asteroid.
+  const fixTapX  = W * 0.26 + AST_SPEED * ((TAP_P[2] + 0.15) * TUT_STEP_DUR);
+  const fixTapY  = AST_Y;
+
+  // Ship in lower-left — nozzle always aimed at the fixed target
+  const shipX    = W * 0.12, shipY = H * 0.66;
+  const aimAngle = Math.atan2(fixTapY - shipY, fixTapX - shipX);
+  _tutCreamBottle(shipX, shipY, aimAngle, 0.6, 1);
+
+  // Nozzle tip (fixed since aim is fixed)
+  const nozzleX  = shipX + Math.cos(aimAngle) * NOZZLE_DIST;
+  const nozzleY  = shipY + Math.sin(aimAngle) * NOZZLE_DIST;
+  const contY    = fixTapY - AST_R - 2;
+
+  // Asteroid: intact until third bullet hits (killP=0.79), then splits into two
+  // small fragments that drift apart. Cycle gap (p=0.97-1.0) both fragments gone.
+  const killP = TAP_P[2] + 0.15; // = 0.79
+  if (p < killP) {
+    _tutRealAst(astX, AST_Y, AST_R, astRot, 1);
+  } else {
+    const sp = p - killP;
+    const drift = sp * TUT_STEP_DUR * W * 0.048;
+    _tutRealAst(fixTapX - drift * 0.75, fixTapY - drift * 0.65, 11, astRot + sp * 3.0, 1);
+    _tutRealAst(fixTapX + drift * 0.85, fixTapY + drift * 0.40, 11, astRot - sp * 2.5, 1);
+  }
+
+  // Three taps — all at the same fixed spot
+  TAP_P.forEach(tapP => {
+    const hIn  = tapP - 0.07;
+    const hOut = tapP + 0.09;
+    if (p > hIn && p < hOut) {
+      let fa, descent;
+      if (p <= tapP) {
+        fa      = (p - hIn) / (tapP - hIn);
+        descent = 38 * (1 - fa);
+      } else {
+        const lp = (p - tapP) / (hOut - tapP);
+        fa       = 1 - lp;
+        descent  = 28 * lp;
+      }
+      _tutHand(fixTapX, contY - descent, Math.PI, false, fa * 0.86);
+    }
+
+    const bEnd = tapP + 0.15;
+    if (p >= tapP && p < bEnd) {
+      const bp = (p - tapP) / 0.15;
+      ctx.save();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(
+        nozzleX + (fixTapX - nozzleX) * bp,
+        nozzleY + (fixTapY - nozzleY) * bp,
+        3.5, 0, Math.PI * 2
+      );
+      ctx.fill();
+      ctx.restore();
+    }
+  });
+
+  // Starburst at kill point — 16 rays expanding and fading, matching in-game debris style
+  if (p >= killP && p < killP + 0.12) {
+    const sp  = p - killP;
+    const fa  = 1 - sp / 0.12;
+    const rOuter = AST_R * (0.8 + sp * 14.0);
+    ctx.save();
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 16; i++) {
+      const angle  = (i / 16) * Math.PI * 2;
+      const bright = i % 2 === 0 ? 1.0 : 0.55;
+      ctx.globalAlpha  = fa * bright;
+      ctx.strokeStyle  = i % 3 === 0 ? '#f5c8a0' : '#fff';
+      ctx.beginPath();
+      ctx.moveTo(fixTapX + Math.cos(angle) * 3, fixTapY + Math.sin(angle) * 3);
+      ctx.lineTo(fixTapX + Math.cos(angle) * rOuter, fixTapY + Math.sin(angle) * rOuter);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  _tutLabel('TAP', 'Aim + Fire');
+  _tutNav(_tutCycles >= TUT_SHOW_PROMPT);
+}
+
+// ── Step 1: SWIPE — Thrust ────────────────────────────────────────────────────
+function _tutStep1() {
+  const p   = _tutT / TUT_STEP_DUR;
+  const sx0 = W * 0.45, sy0 = H * 0.68;
+  const sx1 = W * 0.45, sy1 = H * 0.22;
+  const sa  = -Math.PI / 2; // pointing up
+  const swX = W * 0.68, swY0 = H * 0.74, swY1 = H * 0.24;
+
+  // Fast background asteroids
+  const T = _tutT;
+  _tutRealAst(W*0.88 - T*W*0.23, H*0.14, 14, T*0.8,  0.42);
+  _tutRealAst(W*0.55 - T*W*0.18, H*0.78, 10, T*1.2,  0.36);
+  _tutRealAst(W*0.40 + T*W*0.24, H*0.30, 15, -T*0.9, 0.40);
+  _tutRealAst(W*0.18 + T*W*0.22, H*0.88, 13, -T*0.7, 0.38);
+  _tutRealAst(W * 0.74 - p * W * 0.04, H * 0.56, 13, -p * 0.40, 0.38);
+
+  // Swipe gesture: appear → swipe → fade
+  let swP = 0, fa = 0;
+  if (p > 0.06 && p < 0.74) {
+    if      (p < 0.16) fa = (p - 0.06) / 0.10;
+    else if (p < 0.62) { fa = 1; swP = (p - 0.16) / 0.46; }
+    else               fa = 1 - (p - 0.62) / 0.12;
+    const { tx, ty } = _tutTrail(swX, swY0, swX, swY1, Math.min(swP, 1), fa);
+    _tutHand(tx, ty, 0, false, fa * 0.84); // rotation=0 → finger points UP
+  }
+
+  // Ship: ease-in thrust phase, then constant velocity drift off top of screen.
+  // No deceleration — once thrust ends the ship continues at terminal speed.
+  const THRUST_END = 0.50;
+  const sy_mid     = H * 0.44; // position at end of thrust (65% of total travel)
+  let   shipX = sx0, shipY = sy0, thrustFrac = 0;
+
+  if (p > 0.16) {
+    if (p <= THRUST_END) {
+      const tp  = (p - 0.16) / (THRUST_END - 0.16); // 0→1 during thrust
+      shipY     = sy0 + (sy_mid - sy0) * (tp * tp);  // ease-in: accelerating only
+      shipX     = sx0;
+      thrustFrac = tp;
+    } else {
+      // Terminal velocity = derivative of tp^2 at tp=1 × (sy_mid−sy0)/(THRUST_END−0.16)
+      const velY = 2 * (sy_mid - sy0) / (THRUST_END - 0.16); // negative (upward)
+      shipY = sy_mid + velY * (p - THRUST_END);
+      shipX = sx0;
+    }
+  }
+
+  // Thrust flame (only during thrust phase)
+  if (thrustFrac > 0) {
+    const inten = Math.min(thrustFrac * 2.0, 1);
+    ctx.save();
+    ctx.translate(shipX, shipY);
+    ctx.rotate(sa + Math.PI);
+    const len  = 28 * inten;
+    const grad = ctx.createRadialGradient(6, 0, 0, 6, 0, len);
+    grad.addColorStop(0,    'rgba(255,255,255,0.95)');
+    grad.addColorStop(0.25, 'rgba(245,200,160,0.8)');
+    grad.addColorStop(1,    'rgba(245,200,160,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(len * 0.4, 0, len * 0.6, 6 * inten, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Fade out as ship approaches and exits the top edge
+  const shipAlpha = shipY < H * 0.12 ? Math.max(0, shipY / (H * 0.12)) : 1;
+  if (shipAlpha > 0) _tutCreamBottle(shipX, shipY, sa, 0.6, shipAlpha);
+
+  _tutLabel('SWIPE', 'Thrust');
+  _tutNav(_tutCycles >= TUT_SHOW_PROMPT);
+}
+
+// ── Step 2: TWO-FINGER SWIPE — Hyperspace ────────────────────────────────────
+function _tutStep2() {
+  const p   = _tutT / TUT_STEP_DUR;
+  const sx1 = W * 0.50, sy1 = H * 0.48;
+  const sx2 = W * 0.28, sy2 = H * 0.30;
+
+  const T = _tutT;
+
+  // Fast background asteroids
+  _tutRealAst(W*0.92 - T*W*0.23, H*0.16, 13, T*1.1,  0.40);
+  _tutRealAst(W*0.08 + T*W*0.20, H*0.38, 10, -T*0.9, 0.36);
+  _tutRealAst(W*0.50 - T*W*0.18, H*0.80, 14, T*0.8,  0.42);
+  _tutRealAst(W*0.22 + T*W*0.25, H*0.22, 9,  -T*1.3, 0.34);
+  _tutRealAst(W*0.82 - T*W*0.21, H*0.58, 12, T*1.0,  0.38);
+  _tutRealAst(W*0.35 + T*W*0.17, H*0.88, 11, -T*0.7, 0.32);
+  // Three ambient asteroids drifting
+  _tutRealAst(W*0.18 + T*W*0.020, H*0.62 - T*H*0.008, 20, p*0.25, 0.42);
+  _tutRealAst(W*0.76 - T*W*0.016, H*0.34 + T*H*0.010, 15, -p*0.35, 0.42);
+  _tutRealAst(W*0.60 + T*W*0.012, H*0.72 - T*H*0.018, 11, p*0.50, 0.36);
+
+  // Collision-course asteroid: starts at only 10% of its path (far away) and
+  // arrives at the old ship position at p=0.60 — the ship is fully gone by p=0.40,
+  // giving 0.8 s of clear empty space before the asteroid passes through.
+  const collArrP  = 0.60;
+  const collStart = 0.10;
+  const collSpd   = (1.0 - collStart) / collArrP; // = 1.50
+  const collFrac  = p <= collArrP
+    ? collStart + p * collSpd
+    : 1.0 + (p - collArrP) * collSpd;
+  const collX = W*0.88 + (sx1 - W*0.88) * collFrac;
+  const collY = H*0.10 + (sy1 - H*0.10) * collFrac;
+  let collAlpha;
+  if      (p < 0.25)      collAlpha = 1;
+  else if (p < 0.40)      collAlpha = 0.75 + 0.25 * Math.sin(T * Math.PI * 8);
+  else if (p < collArrP)  collAlpha = 1;
+  else { const post = p - collArrP; collAlpha = post < 0.25 ? 1 : Math.max(0, 1 - (post - 0.25) / 0.08); }
+  _tutRealAst(collX, collY, 26, T * 0.9, collAlpha);
+
+  // Two-finger swipe left: wide trail + two-finger hand
+  const swX0 = W * 0.64, swX1 = W * 0.30, swY = H * 0.60;
+  let fp = 0, fa = 0;
+  if (p > 0.06 && p < 0.60) {
+    if      (p < 0.16) fa = (p - 0.06) / 0.10;
+    else if (p < 0.46) { fa = 1; fp = (p - 0.16) / 0.30; }
+    else               fa = 1 - (p - 0.46) / 0.14;
+
+    const sp  = Math.min(fp, 1);
+    const tipX = swX0 + (swX1 - swX0) * sp;
+    // Wide trail suggesting two fingers
+    ctx.save();
+    const grad = ctx.createLinearGradient(swX0, swY, tipX, swY);
+    grad.addColorStop(0, 'rgba(200,220,255,0)');
+    grad.addColorStop(1, `rgba(200,220,255,${fa * 0.38})`);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth   = 44;
+    ctx.lineCap     = 'round';
+    ctx.beginPath();
+    ctx.moveTo(swX0, swY);
+    ctx.lineTo(tipX, swY);
+    ctx.stroke();
+    ctx.restore();
+    _tutHand(tipX, swY, -Math.PI / 2, true, fa * 0.86); // -PI/2 → fingers point LEFT
+  }
+
+  // Ship: visible → flicker (p=0.28) → fully gone (p=0.40) → reappear (p=0.62).
+  // Asteroid arrives at old position at p=0.60 — ship has been gone for 0.8 s.
+  let a1 = 1, a2 = 0;
+  if      (p > 0.28 && p < 0.40) a1 = 0.5 + 0.5 * Math.sin((p - 0.28) / 0.12 * Math.PI * 10);
+  else if (p > 0.40 && p < 0.62) a1 = 0;
+  else if (p > 0.62 && p < 0.72) { a1 = 0; a2 = (p - 0.62) / 0.10; }
+  else if (p >= 0.72)             { a1 = 0; a2 = 1; }
+
+  if (a1 > 0) _tutCreamBottle(sx1, sy1, 0,   0.6, a1);
+  if (a2 > 0) _tutCreamBottle(sx2, sy2, 0.4, 0.6, a2);
+
+  // Vanish ring at old position
+  if (p > 0.40 && p < 0.56) {
+    const rp = (p - 0.40) / 0.16;
+    ctx.save();
+    ctx.globalAlpha = (1 - rp) * 0.80;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth   = 3;
+    ctx.beginPath();
+    ctx.arc(sx1, sy1, Math.min(W, H) * 0.14 * rp, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+  // Appear ring at new position
+  if (p > 0.62 && p < 0.72) {
+    const rp = (p - 0.62) / 0.10;
+    ctx.save();
+    ctx.globalAlpha = (1 - rp) * 0.60;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth   = 2;
+    ctx.beginPath();
+    ctx.arc(sx2, sy2, Math.min(W, H) * 0.09 * rp, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  _tutLabel('TWO-FINGER SWIPE', 'Hyperspace');
+  _tutNav(_tutCycles >= TUT_SHOW_PROMPT);
+}
+
+function drawTutorial() {
+  drawStarfield();
+  if      (_tutStep === 0) _tutStep0();
+  else if (_tutStep === 1) _tutStep1();
+  else if (_tutStep === 2) _tutStep2();
 }
 
 // ── Capacitor: back button + background pause ─────────────────────────────────
@@ -743,19 +1224,21 @@ function drawSponsorThanks() {
 
   const App = plugins.App;
   if (App) {
-    // Hardware back button: pause when playing, resume when paused, else go to intro
+    // Hardware back button: pause when playing, exit when paused, else go to intro
     App.addListener('backButton', () => {
       if (state === STATE.PLAYING || state === STATE.LEVEL_UP) {
         state = STATE.PAUSED;
         Sound.stopBeat(); Sound.stopUFO(); Sound.stopThrust();
         leaveFullscreen();
       } else if (state === STATE.PAUSED) {
-        state = STATE.PLAYING;
-        Sound.startBeat(asteroids.length, totalForLevel(level));
-      } else if (state === STATE.GAME_OVER || state === STATE.SPONSOR_THANKS) {
+        App.exitApp();
+      } else if (state === STATE.GAME_OVER) {
+        state = STATE.INTRO;
+      } else if (state === STATE.TUTORIAL) {
+        safeLocalSet('tutorialSeen', '1');
         state = STATE.INTRO;
       } else if (state === STATE.INTRO) {
-        App.exitApp(); // allow Android users to back out to home screen from main menu
+        App.exitApp();
       }
     });
 
@@ -782,7 +1265,8 @@ function loop(timestamp) {
   // 30% slower simulation on mobile
   const gameDt = IS_MOBILE ? dt * 0.7 : dt;
 
-  if      (state === STATE.INTRO)     { drawIntro(); }
+  if      (state === STATE.TUTORIAL)  { updateTutorial(dt); drawTutorial(); }
+  else if (state === STATE.INTRO)     { drawIntro(); }
   else if (state === STATE.PLAYING)   { update(gameDt); drawScene(); }
   else if (state === STATE.PAUSED)    { drawScene(); drawPause(); }
   else if (state === STATE.LEVEL_UP)  { updateLevelUp(gameDt); drawScene(); drawLevelUp(); }
@@ -794,12 +1278,6 @@ function loop(timestamp) {
     }
     drawScene(); drawGameOver();
   }
-  else if (state === STATE.SPONSOR_THANKS) {
-    sponsorThanksTimer -= dt;
-    drawSponsorThanks();
-    if (sponsorThanksTimer <= 0) state = STATE.INTRO;
-  }
-  // STATE.AD: HTML overlay handles rendering
 }
 
 // Desktop click-to-start (mobile uses touchstart above)
