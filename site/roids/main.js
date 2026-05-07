@@ -600,6 +600,7 @@ function drawInstructionsPanel() {
         'TAP           Aim + Fire',
         'SWIPE         Thrust',
         'TWO-FINGER SWIPE  Hyperspace',
+        'BACK <        Pause / Exit',
       ]
     : [
         '↑ / LEFT DRAG    Thrust',
