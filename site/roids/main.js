@@ -432,7 +432,7 @@ function drawSettingsOverlay() {
   ctx.fillStyle = 'rgba(0,0,0,0.72)';
   ctx.fillRect(0, 0, W, H);
 
-  const pw = 260, ph = 168;
+  const pw = 260, ph = 220;
   const ox = (W - pw) / 2, oy = (H - ph) / 2;
 
   ctx.fillStyle = 'rgba(15,15,15,0.97)';
@@ -447,12 +447,12 @@ function drawSettingsOverlay() {
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 18px "Courier New", monospace';
-  ctx.fillText('SETTINGS', W / 2, oy + 26);
+  ctx.fillText('SETTINGS', W / 2, oy + 30);
 
-  const tw = 60, th = 30, tx = ox + pw - 74;
+  const tw = 64, th = 44, tx = ox + pw - 78;
   const rows = [
-    { label: '♪ MUSIC', on: _musicOn, y: oy + 68  },
-    { label: '♫ SFX',   on: _sfxOn,   y: oy + 112 },
+    { label: '♪ MUSIC', on: _musicOn, y: oy + 66  },
+    { label: '♫ SFX',   on: _sfxOn,   y: oy + 148 },
   ];
   for (const row of rows) {
     ctx.fillStyle = '#ccc';
@@ -470,7 +470,7 @@ function drawSettingsOverlay() {
 
     ctx.fillStyle = '#fff';
     ctx.textAlign = 'center';
-    ctx.font = 'bold 12px "Courier New", monospace';
+    ctx.font = 'bold 13px "Courier New", monospace';
     ctx.fillText(row.on ? 'ON' : 'OFF', tx + tw / 2, row.y + th / 2);
   }
   ctx.textBaseline = 'alphabetic';
@@ -479,21 +479,27 @@ function drawSettingsOverlay() {
 
 // Returns true if the interaction was consumed by the settings UI.
 function _settingsHit(cx, cy) {
+  // Convert CSS-pixel client coords to canvas coords to handle any display scaling
+  // (e.g. 100vh != window.innerHeight on mobile Chrome).
+  const rect = canvas.getBoundingClientRect();
+  const x = (cx - rect.left) * (canvas.width  / rect.width);
+  const y = (cy - rect.top)  * (canvas.height / rect.height);
+
   if (!_showSettings) {
-    if (Math.hypot(cx - _GEAR_X, cy - _GEAR_Y) <= _GEAR_R) {
+    if (Math.hypot(x - _GEAR_X, y - _GEAR_Y) <= _GEAR_R) {
       _showSettings = true;
       return true;
     }
     return false;
   }
 
-  const pw = 260, ph = 168;
+  const pw = 260, ph = 220;
   const ox = (W - pw) / 2, oy = (H - ph) / 2;
-  const tw = 60, th = 30, tx = ox + pw - 74;
-  const row1Y = oy + 68, row2Y = oy + 112;
+  const tw = 64, th = 44, tx = ox + pw - 78;
+  const row1Y = oy + 66, row2Y = oy + 148;
 
-  if (cx >= tx && cx <= tx + tw) {
-    if (cy >= row1Y && cy <= row1Y + th) {
+  if (x >= tx && x <= tx + tw) {
+    if (y >= row1Y && y <= row1Y + th) {
       _musicOn = !_musicOn;
       safeLocalSet('musicOn', _musicOn ? '1' : '0');
       Sound.setMusic(_musicOn);
@@ -503,7 +509,7 @@ function _settingsHit(cx, cy) {
       }
       return true;
     }
-    if (cy >= row2Y && cy <= row2Y + th) {
+    if (y >= row2Y && y <= row2Y + th) {
       _sfxOn = !_sfxOn;
       safeLocalSet('sfxOn', _sfxOn ? '1' : '0');
       Sound.setSfx(_sfxOn);
@@ -512,7 +518,7 @@ function _settingsHit(cx, cy) {
   }
 
   // Outside panel → close; still consume this tap
-  if (cx < ox || cx > ox + pw || cy < oy || cy > oy + ph) _showSettings = false;
+  if (x < ox || x > ox + pw || y < oy || y > oy + ph) _showSettings = false;
   return true;
 }
 
