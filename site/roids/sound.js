@@ -6,6 +6,8 @@ const Sound = (() => {
   let beatPhase = 0;
   let beatTempo = 1.0;
   let ufoTimer = null;
+  let _musicEnabled = true;
+  let _sfxEnabled   = true;
 
   // m-3: Robust AudioContext creation with error handling
   function getCtx() {
@@ -91,6 +93,7 @@ const Sound = (() => {
   }
 
   function startThrust() {
+    if (!_sfxEnabled) return;
     if (thrustNode) return;
     const c = getCtx();
     if (!c) return;
@@ -128,31 +131,37 @@ const Sound = (() => {
   }
 
   function fire() {
+    if (!_sfxEnabled) return;
     tone('sawtooth', 880, 0.1, 0.3, 220);
   }
 
   function asteroidExplode(size) {
+    if (!_sfxEnabled) return;
     const freq = size === 'large' ? 400 : size === 'medium' ? 700 : 1200;
     noise(0.3, freq, 0.5);
   }
 
   function shipExplode() {
+    if (!_sfxEnabled) return;
     noise(1.5, 2000, 0.6);
     tone('sawtooth', 200, 1.5, 0.2, 40);
   }
 
   function hyperspace() {
+    if (!_sfxEnabled) return;
     tone('sine', 200, 0.5, 0.3, 800);
     tone('sine', 220, 0.5, 0.2, 850);
   }
 
   function extraLife() {
+    if (!_sfxEnabled) return;
     tone('sine', 600, 0.1, 0.3);
     setTimeout(() => tone('sine', 800, 0.1, 0.3), 120);
     setTimeout(() => tone('sine', 1000, 0.15, 0.3), 240);
   }
 
   function startBeat(asteroidCount, totalAsteroids) {
+    if (!_musicEnabled) return;
     stopBeat();
     beatPhase = 0;
     beatTempo = 1.0 + (1 - Math.min(asteroidCount / Math.max(totalAsteroids, 1), 1)) * 2;
@@ -164,6 +173,7 @@ const Sound = (() => {
   }
 
   function _scheduleBeat() {
+    if (!_musicEnabled) return;
     const interval = Math.max(120, 800 / beatTempo);
     tone('sine', beatPhase === 0 ? 55 : 48, 0.08, 0.35);
     beatPhase = beatPhase === 0 ? 1 : 0;
@@ -175,6 +185,7 @@ const Sound = (() => {
   }
 
   function startUFO() {
+    if (!_musicEnabled) return;
     if (ufoTimer) return;
     let phase = 0;
     function beep() {
@@ -196,8 +207,19 @@ const Sound = (() => {
     _getThrustBuffer(); // C-1: pre-warm the thrust buffer on first user interaction
   }
 
+  function setMusic(on) {
+    _musicEnabled = on;
+    if (!on) { stopBeat(); stopUFO(); }
+  }
+
+  function setSfx(on) {
+    _sfxEnabled = on;
+    if (!on) stopThrust();
+  }
+
   return {
     unlock, startThrust, stopThrust, fire, asteroidExplode, shipExplode,
     hyperspace, extraLife, startBeat, updateBeat, stopBeat, startUFO, stopUFO,
+    setMusic, setSfx,
   };
 })();

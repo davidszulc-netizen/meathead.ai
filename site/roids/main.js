@@ -53,6 +53,13 @@ function isMobile() {
 }
 const IS_MOBILE = isMobile();
 
+// ── Settings ──────────────────────────────────────────────────────────────────
+let _musicOn      = safeLocalGet('musicOn') !== '0';
+let _sfxOn        = safeLocalGet('sfxOn')   !== '0';
+let _showSettings = false;
+Sound.setMusic(_musicOn);
+Sound.setSfx(_sfxOn);
+
 // ── State machine ─────────────────────────────────────────────────────────────
 const STATE = { INTRO:'INTRO', PLAYING:'PLAYING', PAUSED:'PAUSED',
                 LEVEL_UP:'LEVEL_UP', GAME_OVER:'GAME_OVER', TUTORIAL:'TUTORIAL' };
@@ -89,6 +96,7 @@ if (IS_MOBILE) {
       const t0 = e.touches[0];
       const tx = t0 ? t0.clientX : 0;
       const ty = t0 ? t0.clientY : 0;
+      if (_settingsHit(tx, ty)) return;
       if (IS_MOBILE && tx > W * 0.70 && ty < 60) {
         // Help button — re-show tutorial from step 0
         _tutStep = 0; _tutT = 0; _tutCycles = 0;
@@ -174,6 +182,7 @@ function spawnLevel() {
 }
 
 function startGame() {
+  _showSettings = false;
   doubleLifeMode = safeLocalGet('doubleLifeNextGame') === '1'; // M-6: safe localStorage read
   if (doubleLifeMode) safeLocalRemove('doubleLifeNextGame');   // M-6: safe localStorage remove
   score = 0; lives = doubleLifeMode ? 6 : 3; level = 1; extraLifeAt = 10000;
@@ -205,6 +214,7 @@ function handleEsc() {
     Sound.stopBeat(); Sound.stopUFO(); Sound.stopThrust();
     leaveFullscreen();
   } else if (state === STATE.PAUSED) {
+    _showSettings = false;
     state = STATE.PLAYING;
     Sound.startBeat(asteroids.length, totalForLevel(level));
     if (ufo) Sound.startUFO();
@@ -402,6 +412,108 @@ function updateLevelUp(dt) {
     _respawnTimer = 0; _gameOverTimer = 0;
     state = STATE.PLAYING;
   }
+}
+
+// ── Settings UI ───────────────────────────────────────────────────────────────
+const _GEAR_X = 26, _GEAR_Y = 28, _GEAR_R = 20;
+
+function _drawGear() {
+  ctx.save();
+  ctx.globalAlpha = 0.65;
+  ctx.fillStyle = '#fff';
+  ctx.font = '26px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('⚙', _GEAR_X, _GEAR_Y);
+  ctx.restore();
+}
+
+function drawSettingsOverlay() {
+  ctx.fillStyle = 'rgba(0,0,0,0.72)';
+  ctx.fillRect(0, 0, W, H);
+
+  const pw = 260, ph = 168;
+  const ox = (W - pw) / 2, oy = (H - ph) / 2;
+
+  ctx.fillStyle = 'rgba(15,15,15,0.97)';
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(ox, oy, pw, ph, 14);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 18px "Courier New", monospace';
+  ctx.fillText('SETTINGS', W / 2, oy + 26);
+
+  const tw = 60, th = 30, tx = ox + pw - 74;
+  const rows = [
+    { label: '♪ MUSIC', on: _musicOn, y: oy + 68  },
+    { label: '♫ SFX',   on: _sfxOn,   y: oy + 112 },
+  ];
+  for (const row of rows) {
+    ctx.fillStyle = '#ccc';
+    ctx.textAlign = 'left';
+    ctx.font = '16px "Courier New", monospace';
+    ctx.fillText(row.label, ox + 26, row.y + th / 2);
+
+    ctx.fillStyle   = row.on ? '#1e7a1e' : '#383838';
+    ctx.strokeStyle = row.on ? '#44bb44' : '#555';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(tx, row.y, tw, th, th / 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 12px "Courier New", monospace';
+    ctx.fillText(row.on ? 'ON' : 'OFF', tx + tw / 2, row.y + th / 2);
+  }
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+}
+
+// Returns true if the interaction was consumed by the settings UI.
+function _settingsHit(cx, cy) {
+  if (!_showSettings) {
+    if (Math.hypot(cx - _GEAR_X, cy - _GEAR_Y) <= _GEAR_R) {
+      _showSettings = true;
+      return true;
+    }
+    return false;
+  }
+
+  const pw = 260, ph = 168;
+  const ox = (W - pw) / 2, oy = (H - ph) / 2;
+  const tw = 60, th = 30, tx = ox + pw - 74;
+  const row1Y = oy + 68, row2Y = oy + 112;
+
+  if (cx >= tx && cx <= tx + tw) {
+    if (cy >= row1Y && cy <= row1Y + th) {
+      _musicOn = !_musicOn;
+      safeLocalSet('musicOn', _musicOn ? '1' : '0');
+      Sound.setMusic(_musicOn);
+      if (_musicOn && (state === STATE.PLAYING || state === STATE.LEVEL_UP)) {
+        Sound.startBeat(asteroids.length, totalForLevel(level));
+        if (ufo) Sound.startUFO();
+      }
+      return true;
+    }
+    if (cy >= row2Y && cy <= row2Y + th) {
+      _sfxOn = !_sfxOn;
+      safeLocalSet('sfxOn', _sfxOn ? '1' : '0');
+      Sound.setSfx(_sfxOn);
+      return true;
+    }
+  }
+
+  // Outside panel → close; still consume this tap
+  if (cx < ox || cx > ox + pw || cy < oy || cy > oy + ph) _showSettings = false;
+  return true;
 }
 
 // ── Draw ──────────────────────────────────────────────────────────────────────
@@ -714,6 +826,8 @@ function drawIntro() {
   drawIntroButt();
   drawInstructionsPanel();
   if (!IS_MOBILE) drawRoidCreamButton();
+  _drawGear();
+  if (_showSettings) drawSettingsOverlay();
 }
 
 
@@ -732,6 +846,8 @@ function drawPause() {
     ctx.fillText('ESC to resume', W / 2, H / 2 + 56);
   }
   ctx.textAlign = 'left';
+  _drawGear();
+  if (_showSettings) drawSettingsOverlay();
 }
 
 function drawLevelUp() {
@@ -1304,8 +1420,11 @@ function loop(timestamp) {
 }
 
 // Desktop click-to-start (mobile uses touchstart above)
-canvas.addEventListener('click', () => {
+canvas.addEventListener('click', (e) => {
   Sound.unlock();
+  if (state === STATE.INTRO || state === STATE.PAUSED) {
+    if (_settingsHit(e.clientX, e.clientY)) return;
+  }
   if (!IS_MOBILE && state === STATE.INTRO) startGame();
 });
 

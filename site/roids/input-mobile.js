@@ -91,6 +91,7 @@ function onTouchEnd(e) {
 
   if (typeof state === 'undefined') return;
   if (state === STATE.PAUSED) {
+    if (typeof _settingsHit === 'function' && _settingsHit(t.clientX, t.clientY)) return;
     state = STATE.PLAYING;
     Sound.startBeat(asteroids.length, totalForLevel(level));
     return;
