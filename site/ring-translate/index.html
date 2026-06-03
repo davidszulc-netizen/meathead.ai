@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ring Audio Translator — Meathead AI</title>
+    <title>Ring Audio Translator &ndash; Meathead AI</title>
     <meta name="robots" content="noindex, nofollow">
     <link rel="icon" type="image/x-icon" href="../favicon.ico">
     <style>
@@ -376,6 +376,93 @@
             white-space: nowrap;
         }
         .batch-error { color: #fca5a5; font-size: .9rem; }
+
+        .provider-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: .75rem;
+        }
+        .provider-card {
+            background: rgba(255,255,255,.045);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 10px;
+            padding: .85rem;
+        }
+        .provider-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .5rem;
+            margin-bottom: .65rem;
+        }
+        .provider-name { font-weight: 700; font-size: .95rem; }
+        .provider-rate { color: rgba(255,255,255,.38); font-size: .72rem; }
+        .provider-card input {
+            width: 100%;
+            background: rgba(0,0,0,.18);
+            border: 1px solid rgba(255,255,255,.14);
+            border-radius: 8px;
+            padding: .55rem .7rem;
+            color: #fff;
+            font-family: monospace;
+            font-size: .82rem;
+            outline: none;
+        }
+        .provider-card input:focus { border-color: #a78bfa; }
+        .provider-actions {
+            display: flex;
+            gap: .4rem;
+            margin-top: .55rem;
+        }
+        .provider-actions button {
+            flex: 1;
+            border: 1px solid rgba(255,255,255,.14);
+            border-radius: 8px;
+            background: rgba(255,255,255,.07);
+            color: rgba(255,255,255,.72);
+            padding: .45rem .5rem;
+            cursor: pointer;
+            font-size: .78rem;
+        }
+        .provider-actions button:hover { background: rgba(255,255,255,.12); color: #fff; }
+        .provider-status {
+            min-height: 1rem;
+            margin-top: .45rem;
+            color: rgba(255,255,255,.38);
+            font-size: .75rem;
+        }
+        .provider-status.ok { color: #4ade80; }
+        .provider-result {
+            border-top: 1px solid rgba(255,255,255,.08);
+            padding-top: 1rem;
+            margin-top: 1rem;
+        }
+        .provider-result:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: .5rem;
+            margin: .65rem 0;
+        }
+        .metric {
+            background: rgba(0,0,0,.16);
+            border-radius: 8px;
+            padding: .55rem;
+        }
+        .metric-label {
+            color: rgba(255,255,255,.4);
+            font-size: .68rem;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            margin-bottom: .2rem;
+        }
+        .metric-value { color: rgba(255,255,255,.9); font-size: .85rem; font-weight: 700; }
+        .note {
+            color: rgba(255,255,255,.4);
+            font-size: .8rem;
+            line-height: 1.4;
+            margin-top: .75rem;
+        }
     </style>
 </head>
 <body>
@@ -387,14 +474,48 @@
 
 <main>
 
-    <!-- API Key -->
+    <!-- API Keys -->
     <div class="card" id="key-card">
-        <h2>OpenAI API Key</h2>
-        <div class="key-row">
-            <input type="password" id="api-key-input" placeholder="sk-..." autocomplete="off" spellcheck="false">
-            <button class="btn-translate" style="width:auto;padding:.6rem 1.1rem;font-size:.9rem" onclick="saveKey()">Save</button>
+        <h2>Provider Keys</h2>
+        <div class="provider-grid" id="provider-grid">
+            <div class="provider-card" data-provider="openai">
+                <div class="provider-head">
+                    <div class="provider-name">OpenAI Whisper</div>
+                    <div class="provider-rate">$0.006/min</div>
+                </div>
+                <input type="password" id="key-openai" placeholder="OPENAI_API_KEY" autocomplete="off" spellcheck="false">
+                <div class="provider-actions">
+                    <button onclick="saveProviderKey('openai')">Save</button>
+                    <button onclick="clearProviderKey('openai')">Clear</button>
+                </div>
+                <div class="provider-status" id="status-openai">Not saved</div>
+            </div>
+            <div class="provider-card" data-provider="elevenlabs">
+                <div class="provider-head">
+                    <div class="provider-name">ElevenLabs Scribe</div>
+                    <div class="provider-rate">$0.22/hr</div>
+                </div>
+                <input type="password" id="key-elevenlabs" placeholder="ELEVENLABS_API_KEY" autocomplete="off" spellcheck="false">
+                <div class="provider-actions">
+                    <button onclick="saveProviderKey('elevenlabs')">Save</button>
+                    <button onclick="clearProviderKey('elevenlabs')">Clear</button>
+                </div>
+                <div class="provider-status" id="status-elevenlabs">Not saved</div>
+            </div>
+            <div class="provider-card" data-provider="soniox">
+                <div class="provider-head">
+                    <div class="provider-name">Soniox</div>
+                    <div class="provider-rate">~$0.10/hr</div>
+                </div>
+                <input type="password" id="key-soniox" placeholder="SONIOX_API_KEY" autocomplete="off" spellcheck="false">
+                <div class="provider-actions">
+                    <button onclick="saveProviderKey('soniox')">Save</button>
+                    <button onclick="clearProviderKey('soniox')">Clear</button>
+                </div>
+                <div class="provider-status" id="status-soniox">Not saved</div>
+            </div>
         </div>
-        <div class="key-status" id="key-status">Key is stored locally in your browser only.</div>
+        <div class="note">Keys are saved only in this browser's localStorage. Do not deploy real keys in this static page; for a public site, route these calls through a server that keeps secrets off the client.</div>
     </div>
 
     <!-- Language Selection -->
@@ -409,7 +530,7 @@
                     <option value="es">Mexican Spanish</option>
                 </select>
             </div>
-            <div class="arrow">→</div>
+            <div class="arrow">&#x2192;</div>
             <div>
                 <label for="dst-lang">Translate to</label>
                 <select id="dst-lang">
@@ -425,25 +546,25 @@
         <h2>Ring Video</h2>
         <div class="drop-zone" id="drop-zone">
             <input type="file" id="file-input" accept="video/*,audio/*,.mp4,.m4a,.mov,.avi,.webm,.mp3,.wav">
-            <div class="icon">📹</div>
+            <div class=”icon”>&#x1F4F9;</div>
             <div class="label" id="drop-label">Drop video here or click to browse</div>
             <div class="sub">MP4, MOV, M4A &bull; Max 25 MB (audio extracted automatically for larger files)</div>
         </div>
         <div class="or-divider">or select a folder</div>
-        <button class="btn-folder" id="btn-folder" onclick="document.getElementById('folder-input').click()">📁 Select Folder</button>
+        <button class="btn-folder" id="btn-folder" onclick="document.getElementById('folder-input').click()">&#x1F4C1; Select Folder</button>
         <input type="file" id="folder-input" webkitdirectory multiple style="display:none">
         <div class="file-list" id="file-list"></div>
     </div>
 
     <!-- Translate Button -->
     <button class="btn-translate" id="translate-btn" onclick="runTranslation()" disabled>
-        <span>Translate Audio</span>
+        <span>Compare Enabled Providers</span>
     </button>
 
     <!-- Progress -->
     <div class="progress" id="progress">
         <div class="spinner"></div>
-        <span id="progress-text">Uploading to Whisper...</span>
+        <span id="progress-text">Preparing audio...</span>
     </div>
 
     <!-- Error / Warning -->
@@ -452,17 +573,8 @@
 
     <!-- Result -->
     <div class="card result-card" id="result-card" style="margin-top:1.25rem">
-        <h2>Result</h2>
-        <div id="result-intermediate" class="result-block" style="display:none">
-            <div class="result-label" id="intermediate-label">Transcription</div>
-            <div class="result-text" id="intermediate-text"></div>
-            <button class="btn-copy" onclick="copyText('intermediate-text', this)">Copy</button>
-        </div>
-        <div id="result-final" class="result-block">
-            <div class="result-label" id="final-label">Translation</div>
-            <div class="result-text" id="final-text"></div>
-            <button class="btn-copy" onclick="copyText('final-text', this)">Copy</button>
-        </div>
+        <h2>Provider Results</h2>
+        <div id="provider-results"></div>
     </div>
 
 </main>
@@ -473,41 +585,55 @@
 
 <script>
 'use strict';
-const KEY_STORE = 'ring_translator_openai_key';
 
-// Load saved key
+const PROVIDERS = {
+    openai: { label: 'OpenAI Whisper', store: 'ring_translator_openai_key', costPerMinute: 0.006 },
+    elevenlabs: { label: 'ElevenLabs Scribe', store: 'ring_translator_elevenlabs_key', costPerMinute: 0.22 / 60 },
+    soniox: { label: 'Soniox', store: 'ring_translator_soniox_key', costPerMinute: 0.10 / 60 },
+};
+
 window.addEventListener('DOMContentLoaded', () => {
-    const saved = localStorage.getItem(KEY_STORE);
-    if (saved) {
-        document.getElementById('api-key-input').value = saved;
-        setKeyStatus(true);
-    }
+    for (const id of Object.keys(PROVIDERS)) hydrateProviderKey(id);
     updateTranslateBtn();
 });
 
-function saveKey() {
-    const val = document.getElementById('api-key-input').value.trim();
-    if (!val.startsWith('sk-')) {
-        setKeyStatus(false, 'Key should start with sk-');
-        return;
-    }
-    localStorage.setItem(KEY_STORE, val);
-    setKeyStatus(true);
+function hydrateProviderKey(providerId) {
+    const provider = PROVIDERS[providerId];
+    const saved = localStorage.getItem(provider.store);
+    const input = document.getElementById(`key-${providerId}`);
+    if (saved) input.value = saved;
+    setProviderStatus(providerId, !!saved);
+}
+
+function saveProviderKey(providerId) {
+    const provider = PROVIDERS[providerId];
+    const val = document.getElementById(`key-${providerId}`).value.trim();
+    if (!val) return clearProviderKey(providerId);
+    localStorage.setItem(provider.store, val);
+    setProviderStatus(providerId, true);
     updateTranslateBtn();
 }
 
-function setKeyStatus(ok, msg) {
-    const el = document.getElementById('key-status');
-    if (ok) {
-        el.textContent = '✓ Key saved in browser localStorage';
-        el.className = 'key-status ok';
-    } else {
-        el.textContent = msg || 'Key is stored locally in your browser only.';
-        el.className = 'key-status';
-    }
+function clearProviderKey(providerId) {
+    const provider = PROVIDERS[providerId];
+    localStorage.removeItem(provider.store);
+    document.getElementById(`key-${providerId}`).value = '';
+    setProviderStatus(providerId, false);
+    updateTranslateBtn();
 }
 
-// File input
+function setProviderStatus(providerId, ok, msg) {
+    const el = document.getElementById(`status-${providerId}`);
+    el.textContent = msg || (ok ? 'Saved locally' : 'Not saved');
+    el.className = ok ? 'provider-status ok' : 'provider-status';
+}
+
+function getEnabledProviders() {
+    return Object.entries(PROVIDERS)
+        .filter(([, provider]) => localStorage.getItem(provider.store))
+        .map(([id]) => id);
+}
+
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
 const folderInput = document.getElementById('folder-input');
@@ -530,8 +656,8 @@ folderInput.addEventListener('change', () => {
     const all = Array.from(folderInput.files);
     const videos = all.filter(f => VIDEO_EXTS.test(f.name));
     const skipped = all.length - videos.length;
-    if (videos.length === 0) {
-        showError('No video/audio files found in selected folder.' + (skipped ? ` (${skipped} non-video file${skipped !== 1 ? 's' : ''} ignored)` : ''));
+    if (!videos.length) {
+        showError('No video/audio files found in selected folder.' + (skipped ? ` (${skipped} non-video files ignored)` : ''));
         return;
     }
     clearError();
@@ -555,10 +681,10 @@ folderInput.addEventListener('change', () => {
         const mb = (f.size / 1024 / 1024).toFixed(1);
         const item = document.createElement('div');
         item.className = 'file-item';
-        item.innerHTML = `<span class="file-name">📹 ${escHtml(f.name)}</span><span class="file-size">${mb} MB</span><span class="file-status"></span>`;
+        item.innerHTML = `<span class="file-name">${escHtml(f.name)}</span><span class="file-size">${mb} MB</span><span class="file-status"></span>`;
         listEl.appendChild(item);
     }
-    document.getElementById('btn-folder').textContent = `📁 ${videos.length} video file${videos.length !== 1 ? 's' : ''} selected`;
+    document.getElementById('btn-folder').textContent = `${videos.length} file${videos.length !== 1 ? 's' : ''} selected`;
     updateTranslateBtn();
 });
 
@@ -566,7 +692,7 @@ function setFile(file) {
     selectedFile = file;
     selectedFiles = [];
     document.getElementById('file-list').style.display = 'none';
-    document.getElementById('btn-folder').textContent = '📁 Select Folder';
+    document.getElementById('btn-folder').textContent = 'Select Folder';
     const mb = (file.size / 1024 / 1024).toFixed(1);
     document.getElementById('drop-label').textContent = `${file.name} (${mb} MB)`;
     dropZone.classList.add('has-file');
@@ -574,11 +700,13 @@ function setFile(file) {
 }
 
 function updateTranslateBtn() {
-    const hasKey = !!localStorage.getItem(KEY_STORE);
+    const count = getEnabledProviders().length;
     const hasFiles = !!(selectedFile || selectedFiles.length > 0);
-    document.getElementById('translate-btn').disabled = !(hasKey && hasFiles);
-    document.getElementById('translate-btn').querySelector('span').textContent =
-        selectedFiles.length > 1 ? `Translate ${selectedFiles.length} Files` : 'Translate Audio';
+    const btn = document.getElementById('translate-btn');
+    btn.disabled = !(count && hasFiles);
+    btn.querySelector('span').textContent = selectedFiles.length > 1
+        ? `Compare ${count || 0} Provider${count !== 1 ? 's' : ''} on ${selectedFiles.length} Files`
+        : `Compare ${count || 0} Enabled Provider${count !== 1 ? 's' : ''}`;
 }
 
 function showError(msg) {
@@ -593,7 +721,7 @@ function clearError() {
 
 function showWarning(msg) {
     const el = document.getElementById('warning-box');
-    el.textContent = '⚠ ' + msg;
+    el.textContent = msg;
     el.classList.add('visible');
 }
 
@@ -610,174 +738,202 @@ function setProgress(visible, text) {
 async function runTranslation() {
     clearError();
     clearWarning();
-    document.getElementById('result-card').classList.remove('visible');
-
-    const apiKey = localStorage.getItem(KEY_STORE);
-    if (!apiKey) return;
+    const enabledProviders = getEnabledProviders();
+    if (!enabledProviders.length) return showError('Save at least one provider key first.');
 
     const src = document.getElementById('src-lang').value;
     const dst = document.getElementById('dst-lang').value;
-    const isBatch = selectedFiles.length > 0;
-    const files = isBatch ? selectedFiles : (selectedFile ? [selectedFile] : []);
-    if (files.length === 0) return;
+    const needsTranslation = src !== dst;
+    const files = selectedFiles.length ? selectedFiles : (selectedFile ? [selectedFile] : []);
+    if (!files.length) return;
 
-    document.getElementById('translate-btn').disabled = true;
-    const whisperMode = (dst === 'en' && src !== 'en') ? 'translate' : 'transcribe';
-
-    if (isBatch) {
-        const resultCard = document.getElementById('result-card');
-        const finalText = document.getElementById('final-text');
-        document.getElementById('result-intermediate').style.display = 'none';
-        document.getElementById('final-label').textContent = `${files.length} Files`;
-        finalText.innerHTML = '';
-        resultCard.classList.add('visible');
-
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-            updateFileStatus(i, 'processing', '⏳');
-            setProgress(true, `[${i + 1}/${files.length}] Uploading ${file.name}...`);
-            try {
-                let uploadFile;
-                try { uploadFile = await extractAudio(file); } catch (_) { uploadFile = file; }
-                if (uploadFile.size > 25 * 1024 * 1024) throw new Error('Exceeds 25 MB limit');
-
-                const whisperResp = await callWhisper(apiKey, uploadFile, whisperMode, src);
-                const flag = detectHallucination(whisperResp);
-                if (flag && flag.fatal) throw new Error(flag.reason);
-
-                appendBatchResult(finalText, file.name, whisperResp.text || '', flag ? flag.reason : null);
-                updateFileStatus(i, 'done', '✓');
-            } catch (err) {
-                appendBatchError(finalText, file.name, err.message);
-                updateFileStatus(i, 'error', '✗');
-            }
-        }
-        setProgress(false);
-    } else {
-        setProgress(true, 'Preparing audio...');
-        try {
-            let uploadFile;
-            try {
-                uploadFile = await extractAudio(selectedFile);
-                const origMB = (selectedFile.size / 1024 / 1024).toFixed(1);
-                const audioMB = (uploadFile.size / 1024 / 1024).toFixed(1);
-                setProgress(true, `Uploading to Whisper... (${origMB} MB → ${audioMB} MB audio)`);
-            } catch (_) {
-                uploadFile = selectedFile;
-                setProgress(true, 'Uploading to Whisper...');
-            }
-
-            if (uploadFile.size > 25 * 1024 * 1024) throw new Error('Audio exceeds 25 MB. Try a shorter clip.');
-
-            const whisperResp = await callWhisper(apiKey, uploadFile, whisperMode, src);
-            const flag = detectHallucination(whisperResp);
-            if (flag && flag.fatal) throw new Error(`No speech detected — ${flag.reason}`);
-            if (flag) showWarning(`Whisper flagged this audio (${flag.reason}) — result may be unreliable.`);
-
-            showResult(whisperResp.text || '', src, dst);
-        } catch (err) {
-            showError(err.message);
-        } finally {
-            setProgress(false);
-        }
+    const nonOpenAiEnabled = enabledProviders.filter(p => p !== 'openai');
+    if (needsTranslation && !localStorage.getItem(PROVIDERS.openai.store) && nonOpenAiEnabled.length) {
+        showWarning('ElevenLabs and Soniox return transcripts only; an OpenAI key is required to translate their output.');
     }
 
-    document.getElementById('translate-btn').disabled = false;
-    updateTranslateBtn();
+    const resultsEl = document.getElementById('provider-results');
+    resultsEl.innerHTML = '';
+    document.getElementById('result-card').classList.add('visible');
+    document.getElementById('translate-btn').disabled = true;
+
+    try {
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (selectedFiles.length) updateFileStatus(i, 'processing', '...');
+            setProgress(true, `[${i + 1}/${files.length}] Preparing ${file.name}...`);
+            const prepared = await prepareAudio(file);
+            for (const providerId of enabledProviders) {
+                setProgress(true, `[${i + 1}/${files.length}] ${PROVIDERS[providerId].label}...`);
+                await runProvider(providerId, prepared, file.name, src, dst, needsTranslation, resultsEl);
+            }
+            if (selectedFiles.length) updateFileStatus(i, 'done', 'done');
+        }
+    } catch (err) {
+        showError(err.message);
+    } finally {
+        setProgress(false);
+        document.getElementById('translate-btn').disabled = false;
+        updateTranslateBtn();
+    }
 }
 
-async function callWhisper(apiKey, file, mode, language) {
+async function prepareAudio(file) {
+    let uploadFile = file;
+    try {
+        uploadFile = await extractAudio(file);
+    } catch (_) {
+        uploadFile = file;
+    }
+    if (uploadFile.size > 25 * 1024 * 1024) throw new Error(`${file.name}: audio exceeds 25 MB. Try a shorter clip.`);
+    const audioSeconds = await getAudioDuration(uploadFile).catch(() => 0);
+    return { sourceFile: file, uploadFile, audioSeconds };
+}
+
+async function runProvider(providerId, prepared, filename, src, dst, needsTranslation, container) {
+    const provider = PROVIDERS[providerId];
+    const key = localStorage.getItem(provider.store);
+    const started = performance.now();
+    let transcript = '';
+    let finalText = '';
+    let translationNote = '';
+
+    try {
+        if (providerId === 'openai') {
+            transcript = await callWhisper(key, prepared.uploadFile, src);
+        } else if (providerId === 'elevenlabs') {
+            transcript = await callElevenLabs(key, prepared.uploadFile, src);
+        } else if (providerId === 'soniox') {
+            transcript = await callSoniox(key, prepared.uploadFile, src);
+        }
+        if (!transcript) throw new Error('No speech detected.');
+
+        finalText = transcript;
+        if (needsTranslation) {
+            const openAiKey = localStorage.getItem(PROVIDERS.openai.store);
+            if (openAiKey) {
+                finalText = await translateWithGpt(openAiKey, transcript, dst);
+            } else {
+                translationNote = 'Translation skipped: save an OpenAI key to translate this transcript.';
+            }
+        }
+
+        appendProviderResult(container, {
+            providerName: provider.label,
+            filename,
+            finalText,
+            translationNote,
+            seconds: (performance.now() - started) / 1000,
+            audioSeconds: prepared.audioSeconds,
+            cost: estimateCost(providerId, prepared.audioSeconds),
+        });
+    } catch (err) {
+        appendProviderError(container, provider.label, filename, err.message);
+    }
+}
+
+async function callWhisper(apiKey, file, language) {
     const form = new FormData();
     form.append('file', file, file.name);
     form.append('model', 'whisper-1');
-    form.append('response_format', 'verbose_json');
-    if (mode === 'transcribe' && language) form.append('language', language);
+    form.append('response_format', 'text');
+    form.append('language', language);
 
-    const endpoint = mode === 'translate'
-        ? 'https://api.openai.com/v1/audio/translations'
-        : 'https://api.openai.com/v1/audio/transcriptions';
-
-    const res = await fetch(endpoint, {
+    const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${apiKey}` },
-        body: form
+        body: form,
     });
     if (!res.ok) throw new Error(`Whisper error ${res.status}: ${await res.text()}`);
-    return await res.json();
+    return (await res.text()).trim();
 }
 
-async function callWhisperWithFallback(apiKey, file, mode, language, progressCb) {
-    let resp = await callWhisper(apiKey, file, mode, language);
+async function callElevenLabs(apiKey, file, language) {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    form.append('model_id', 'scribe_v2');
+    form.append('tag_audio_events', 'false');
+    if (language) form.append('language_code', language);
 
-    // If translate mode dropped a significant portion of the audio (mixed-language clip),
-    // retry with auto-detect transcription and let GPT handle translation instead.
-    if (mode === 'translate' && resp.duration && resp.segments && resp.segments.length > 0) {
-        const lastEnd = resp.segments[resp.segments.length - 1].end;
-        if (lastEnd < resp.duration * 0.7) {
-            if (progressCb) progressCb('Language switch detected — retrying with auto-detect...');
-            resp = await callWhisper(apiKey, file, 'transcribe', null);
-            resp._autoDetectFallback = true;
+    const res = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+        method: 'POST',
+        headers: { 'xi-api-key': apiKey },
+        body: form,
+    });
+    if (!res.ok) throw new Error(`ElevenLabs error ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    return (data.text || '').trim();
+}
+
+async function callSoniox(apiKey, file, srcLang) {
+    const uploadForm = new FormData();
+    uploadForm.append('file', file, file.name);
+    const upload = await fetch('https://api.soniox.com/v1/files', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+        body: uploadForm,
+    });
+    if (!upload.ok) throw new Error(`Soniox upload error ${upload.status}: ${await upload.text()}`);
+    const uploaded = await upload.json();
+    const fileId = uploaded.id || uploaded.file_id;
+    if (!fileId) throw new Error('Soniox did not return a file id.');
+
+    const body = {
+        model: 'stt-async-preview',
+        file_id: fileId,
+        language_hints: srcLang ? [srcLang] : undefined,
+        enable_speaker_diarization: false,
+        enable_language_identification: true,
+    };
+
+    const created = await fetch('https://api.soniox.com/v1/transcriptions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+    if (!created.ok) throw new Error(`Soniox create error ${created.status}: ${await created.text()}`);
+    const job = await created.json();
+
+    for (let i = 0; i < 90; i++) {
+        await sleep(1500);
+        const statusRes = await fetch(`https://api.soniox.com/v1/transcriptions/${job.id}`, {
+            headers: { 'Authorization': `Bearer ${apiKey}` },
+        });
+        if (!statusRes.ok) throw new Error(`Soniox status error ${statusRes.status}: ${await statusRes.text()}`);
+        const status = await statusRes.json();
+        if (status.status === 'error') throw new Error(status.error_message || 'Soniox transcription failed.');
+        if (status.status === 'completed') {
+            const transcriptRes = await fetch(`https://api.soniox.com/v1/transcriptions/${job.id}/transcript`, {
+                headers: { 'Authorization': `Bearer ${apiKey}` },
+            });
+            if (!transcriptRes.ok) throw new Error(`Soniox transcript error ${transcriptRes.status}: ${await transcriptRes.text()}`);
+            const transcript = await transcriptRes.json();
+            return (transcript.text || '').trim();
         }
     }
-    return resp;
+    throw new Error('Soniox timed out waiting for transcription.');
 }
 
-async function callGptDiarize(apiKey, segments, srcLang, dstLang, needsTranslation) {
+async function translateWithGpt(apiKey, text, dstLang) {
     const dstName = dstLang === 'zh' ? 'Simplified Chinese' : 'English';
-    const segLines = segments.map(s => `[${s.start.toFixed(1)}s] ${s.text.trim()}`).join('\n');
-
-    const translateInstruction = needsTranslation
-        ? `3. Translate each turn to ${dstName}. The segments may be in any language — translate all of them.`
-        : `3. The segments are already in ${dstName} — clean up and present each turn as-is.`;
-
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
             model: 'gpt-4o-mini',
-            temperature: 0.2,
+            temperature: 0,
             messages: [
                 {
                     role: 'system',
-                    content:
-`You are a transcription assistant for Ring doorbell audio clips.
-Given timestamped speech segments, do the following:
-1. Assign each segment to a speaker (Person A, Person B, etc.) based on conversational patterns — who is asking vs answering, natural dialogue turns.
-2. Merge consecutive segments from the same speaker into one turn.
-${translateInstruction}
-4. IMPORTANT: Keep any proper nouns, brand names, product names, or unrecognized references exactly as they appear — do not translate or guess at them.
-5. Respond with a JSON array only, no markdown, no explanation:
-[{"speaker":"Person A","text":"..."},{"speaker":"Person B","text":"..."}]`
+                    content: `Translate the following text to ${dstName}. Return only the translation, no explanation. Keep proper nouns, names, and addresses as-is.`
                 },
-                {
-                    role: 'user',
-                    content: `Segments:\n${segLines}`
-                }
+                { role: 'user', content: text }
             ]
         })
     });
     if (!res.ok) throw new Error(`GPT error ${res.status}: ${await res.text()}`);
     const data = await res.json();
-    const raw = data.choices[0].message.content.trim();
-    try {
-        return JSON.parse(raw);
-    } catch {
-        const match = raw.match(/\[[\s\S]*\]/);
-        if (match) return JSON.parse(match[0]);
-        throw new Error('Could not parse speaker turns from GPT response.');
-    }
-}
-
-function showResult(text, src, dst) {
-    const srcName = { zh: 'Mandarin Chinese', en: 'English', es: 'Mexican Spanish' }[src];
-    const dstName = { en: 'English', zh: 'Chinese (Simplified)' }[dst];
-
-    document.getElementById('result-intermediate').style.display = 'none';
-    document.getElementById('final-label').textContent = `${srcName} → ${dstName}`;
-    document.getElementById('final-text').textContent = text;
-
-    document.getElementById('result-card').classList.add('visible');
-    document.getElementById('result-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return data.choices[0].message.content.trim();
 }
 
 function updateFileStatus(idx, state, text) {
@@ -788,63 +944,73 @@ function updateFileStatus(idx, state, text) {
     }
 }
 
-function appendBatchResult(container, filename, text, warningMsg) {
+function appendProviderResult(container, result) {
     const section = document.createElement('div');
-    section.className = 'batch-result';
-    section.innerHTML = `<div class="batch-result-title">${escHtml(filename)}</div>`;
-    if (warningMsg) {
-        const w = document.createElement('div');
-        w.style.cssText = 'font-size:.75rem;color:#fde68a;margin-bottom:.5rem;';
-        w.textContent = '⚠ ' + warningMsg;
-        section.appendChild(w);
-    }
+    section.className = 'provider-result';
+    const rtf = result.audioSeconds ? `${(result.seconds / result.audioSeconds).toFixed(2)}x` : 'n/a';
+    const audioMins = result.audioSeconds ? (result.audioSeconds / 60).toFixed(2) : 'n/a';
+    const cost = result.cost == null ? 'plan' : `${result.cost.toFixed(4)}`;
+    section.innerHTML = `
+        <div class="batch-result-title">${escHtml(result.providerName)} - ${escHtml(result.filename)}</div>
+        <div class="metrics">
+            <div class="metric"><div class="metric-label">Runtime</div><div class="metric-value">${result.seconds.toFixed(1)}s</div></div>
+            <div class="metric"><div class="metric-label">Audio</div><div class="metric-value">${audioMins} min</div></div>
+            <div class="metric"><div class="metric-label">RT Factor</div><div class="metric-value">${rtf}</div></div>
+            <div class="metric"><div class="metric-label">Est. Cost</div><div class="metric-value">${cost}</div></div>
+        </div>`;
     const textEl = document.createElement('div');
     textEl.className = 'result-text';
-    textEl.style.cssText = 'font-size:.9rem;';
-    textEl.textContent = text;
+    textEl.style.fontSize = '.9rem';
+    textEl.textContent = result.finalText;
     section.appendChild(textEl);
+    if (result.translationNote) {
+        const note = document.createElement('div');
+        note.className = 'note';
+        note.textContent = result.translationNote;
+        section.appendChild(note);
+    }
     container.appendChild(section);
 }
 
-function appendBatchError(container, filename, msg) {
+function appendProviderError(container, providerName, filename, msg) {
     const section = document.createElement('div');
-    section.className = 'batch-result';
-    section.innerHTML = `<div class="batch-result-title">${escHtml(filename)}</div><div class="batch-error">${escHtml(msg)}</div>`;
+    section.className = 'provider-result';
+    section.innerHTML = `<div class="batch-result-title">${escHtml(providerName)} - ${escHtml(filename)}</div><div class="batch-error">${escHtml(msg)}</div>`;
     container.appendChild(section);
 }
 
-function detectHallucination(whisperResp) {
-    const text = (whisperResp.text || '').trim();
-    if (!text) return { fatal: true, reason: 'transcript is empty' };
+function estimateCost(providerId, audioSeconds) {
+    const rate = PROVIDERS[providerId].costPerMinute;
+    if (rate == null || !audioSeconds) return null;
+    return (audioSeconds / 60) * rate;
+}
 
-    const words = text.toLowerCase().match(/\b\w+\b/g) || [];
-    if (words.length === 0) return { fatal: true, reason: 'transcript is empty' };
-
-    // Single word makes up more than half the transcript — strong signal of looping hallucination
-    const freq = {};
-    for (const w of words) freq[w] = (freq[w] || 0) + 1;
-    const topWord = Object.entries(freq).sort((a,b) => b[1]-a[1])[0];
-    if (topWord[1] / words.length > 0.5 && words.length > 15) {
-        return { fatal: false, reason: `word "${topWord[0]}" repeated ${topWord[1]} times` };
-    }
-
-    // Phrases that Whisper hallucinates on silence/noise but never appear in real doorbell conversation
-    const triggers = ['thank you for watching', 'please subscribe', 'see you next week'];
-    const lower = text.toLowerCase();
-    if (triggers.some(t => lower.includes(t))) {
-        return { fatal: false, reason: 'possible Whisper hallucination phrase detected' };
-    }
-
-    return null;
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function getAudioDuration(file) {
+    const url = URL.createObjectURL(file);
+    try {
+        const audio = document.createElement('audio');
+        audio.preload = 'metadata';
+        audio.src = url;
+        await new Promise((resolve, reject) => {
+            audio.onloadedmetadata = resolve;
+            audio.onerror = () => reject(new Error('Could not read audio duration.'));
+        });
+        return Number.isFinite(audio.duration) ? audio.duration : 0;
+    } finally {
+        URL.revokeObjectURL(url);
+    }
 }
 
 async function extractAudio(file) {
     const arrayBuffer = await file.arrayBuffer();
-
     const audioCtx = new AudioContext();
     let audioBuffer;
     try {
@@ -856,8 +1022,6 @@ async function extractAudio(file) {
     const sampleRate = audioBuffer.sampleRate;
     const numCh = audioBuffer.numberOfChannels;
     const len = audioBuffer.length;
-
-    // Mix to mono
     const mono = new Float32Array(len);
     for (let ch = 0; ch < numCh; ch++) {
         const chData = audioBuffer.getChannelData(ch);
@@ -882,16 +1046,16 @@ function encodeWav(pcm, sampleRate) {
     const str = (off, s) => { for (let i = 0; i < s.length; i++) v.setUint8(off + i, s.charCodeAt(i)); };
 
     str(0, 'RIFF');
-    v.setUint32(4,  36 + dataSize, true);
+    v.setUint32(4, 36 + dataSize, true);
     str(8, 'WAVE');
     str(12, 'fmt ');
-    v.setUint32(16, 16, true);          // chunk size
-    v.setUint16(20, 1,  true);          // PCM
-    v.setUint16(22, 1,  true);          // mono
+    v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true);
+    v.setUint16(22, 1, true);
     v.setUint32(24, sampleRate, true);
-    v.setUint32(28, sampleRate * 2, true); // byte rate
-    v.setUint16(32, 2,  true);          // block align
-    v.setUint16(34, 16, true);          // bits per sample
+    v.setUint32(28, sampleRate * 2, true);
+    v.setUint16(32, 2, true);
+    v.setUint16(34, 16, true);
     str(36, 'data');
     v.setUint32(40, dataSize, true);
     new Int16Array(buf, 44).set(pcm);
@@ -909,6 +1073,7 @@ function copyText(id, btn) {
         }, 2000);
     });
 }
+
 </script>
 
 </body>
