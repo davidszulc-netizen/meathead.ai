@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scribe — Account Linking</title>
+    <meta name="robots" content="noindex, nofollow">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: #1e293b; background: #f8fafc; }
+        .container { max-width: 640px; margin: 0 auto; padding: 3rem 1.5rem; }
+        h1 { font-size: 1.6rem; font-weight: 800; color: #0f172a; margin-bottom: .8rem; }
+        p { font-size: .95rem; line-height: 1.7; color: #334155; margin-bottom: 1rem; }
+        .ok { color: #15803d; font-weight: 700; }
+        .err { color: #b91c1c; font-weight: 700; }
+        .param {
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+            padding: .9rem 1.1rem; margin-bottom: .8rem; word-break: break-all;
+        }
+        .param .k { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #64748b; margin-bottom: .25rem; }
+        .param .v { font-family: Consolas, monospace; font-size: .88rem; color: #0f172a; }
+        button {
+            background: #2563eb; color: #fff; border: 0; border-radius: 8px;
+            padding: .55rem 1.1rem; font-size: .9rem; font-weight: 600; cursor: pointer;
+        }
+        button:hover { background: #1d4ed8; }
+        .note { font-size: .85rem; color: #64748b; margin-top: 1.4rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Scribe — Account Linking</h1>
+        <div id="status"></div>
+        <div id="params"></div>
+        <button id="copyBtn" style="display:none">Copy authorization code</button>
+        <p class="note">This page receives the response from Ring's account-linking flow during Scribe's development and testing. If you arrived here unexpectedly, you can close this tab — no action has been taken on your account.</p>
+    </div>
+    <script>
+        const qs = new URLSearchParams(location.search);
+        const statusEl = document.getElementById('status');
+        const paramsEl = document.getElementById('params');
+        const copyBtn = document.getElementById('copyBtn');
+        const entries = [...qs.entries()];
+
+        if (qs.get('error')) {
+            statusEl.innerHTML = '<p class="err">Linking failed or was cancelled.</p>';
+        } else if (qs.get('code')) {
+            statusEl.innerHTML = '<p class="ok">Linking response received.</p><p>Copy the authorization code below and paste it where requested.</p>';
+            copyBtn.style.display = 'inline-block';
+            copyBtn.onclick = () => {
+                navigator.clipboard.writeText(qs.get('code')).then(() => { copyBtn.textContent = 'Copied!'; });
+            };
+        } else {
+            statusEl.innerHTML = '<p>No linking parameters present in this request.</p>';
+        }
+
+        for (const [k, v] of entries) {
+            const div = document.createElement('div');
+            div.className = 'param';
+            const kEl = document.createElement('div'); kEl.className = 'k'; kEl.textContent = k;
+            const vEl = document.createElement('div'); vEl.className = 'v'; vEl.textContent = v;
+            div.appendChild(kEl); div.appendChild(vEl);
+            paramsEl.appendChild(div);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy — Scribe</title>
+    <meta name="description" content="Scribe privacy policy: audio is processed and deleted, only text is retained, you control retention, and your data is never sold or used for AI training.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://meathead.ai/scribe/privacy.html">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: #1e293b; background: #f8fafc; }
+        .container { max-width: 700px; margin: 0 auto; padding: 2.5rem 1.5rem 3rem; }
+        .back { display: inline-block; color: #64748b; text-decoration: none; font-size: .9rem; margin-bottom: 1.5rem; }
+        .back:hover { color: #0f172a; }
+        .back::before { content: '\2190\00a0'; }
+        h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 800; color: #0f172a; margin-bottom: .3rem; }
+        .updated { font-size: .85rem; color: #94a3b8; margin-bottom: .6rem; }
+        .draft {
+            display: inline-block; background: #fef3c7; color: #92400e; font-size: .78rem;
+            font-weight: 600; padding: .25rem .7rem; border-radius: 999px; margin-bottom: 1.8rem;
+        }
+        h2 { font-size: 1.05rem; font-weight: 700; color: #0f172a; margin: 1.8rem 0 .5rem; }
+        p, li { font-size: .95rem; line-height: 1.7; color: #334155; margin-bottom: .8rem; }
+        ul { padding-left: 1.3rem; margin-bottom: .8rem; }
+        li { margin-bottom: .4rem; }
+        .promise {
+            background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px;
+            padding: 1.1rem 1.3rem; margin: 1.2rem 0;
+        }
+        .promise p { margin-bottom: .4rem; font-weight: 600; color: #14532d; }
+        .promise p:last-child { margin-bottom: 0; }
+        a { color: #2563eb; }
+        table { border-collapse: collapse; width: 100%; margin: .8rem 0 1rem; font-size: .9rem; }
+        th, td { text-align: left; padding: .5rem .7rem; border: 1px solid #e2e8f0; color: #334155; }
+        th { background: #f1f5f9; color: #0f172a; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a class="back" href="/scribe/">Scribe</a>
+        <h1>Privacy Policy</h1>
+        <p class="updated">Last updated: July 30, 2026</p>
+        <span class="draft">Draft — Scribe is in private development; this policy will receive legal review before public launch</span>
+
+        <div class="promise">
+            <p>Audio is processed and then deleted. We keep only text.</p>
+            <p>You choose how long transcripts are kept, and you can delete everything with one action.</p>
+            <p>We never train AI models on your data. We never sell your data. There are no ads.</p>
+        </div>
+
+        <h2>What Scribe does</h2>
+        <p>Scribe connects to your Ring account, with your explicit authorization, to convert the spoken audio in your Ring camera and doorbell event recordings into text transcripts, optionally translated into your preferred language. Transcripts are delivered back to you and stored so you can review and search them.</p>
+
+        <h2>What we collect and why</h2>
+        <ul>
+            <li><strong>Ring account linkage:</strong> an authorization token provided by Ring when you link your account. Used solely to retrieve your camera events and clips through Ring's official developer APIs. We never see your Ring password.</li>
+            <li><strong>Event recordings (temporarily):</strong> the audio from a camera event is retrieved for processing. The audio and any retrieved clip are <strong>deleted immediately after transcription completes</strong>. No audio or video is stored at rest.</li>
+            <li><strong>Transcripts:</strong> the text produced from your events, with event time and camera name, retained for the period you choose (see Retention).</li>
+            <li><strong>Account basics:</strong> your email address and settings (language preferences, retention choice), used to operate the service.</li>
+        </ul>
+        <p>We do not collect or process biometric identifiers. Scribe transcribes what was said; it does not identify who said it by voice.</p>
+
+        <h2>How processing works (subprocessors)</h2>
+        <p>Transcription and translation run on established AI service providers under agreements that prohibit using your data to train their models:</p>
+        <table>
+            <tr><th>Provider</th><th>Purpose</th></tr>
+            <tr><td>ElevenLabs</td><td>Speech-to-text transcription</td></tr>
+            <tr><td>OpenAI</td><td>Speech-to-text (fallback) and translation</td></tr>
+            <tr><td>Cloud hosting provider</td><td>Running the Scribe service and storing transcripts</td></tr>
+        </table>
+        <p>Audio is transmitted to these providers only for the moment of processing and is subject to the same delete-after-processing rule.</p>
+
+        <h2>Retention and deletion</h2>
+        <ul>
+            <li>Audio and video: <strong>never stored</strong> — deleted upon completion of transcription.</li>
+            <li>Transcripts: kept for the retention window you select (30 or 90 days), then permanently deleted.</li>
+            <li>Delete everything: a single control permanently removes all your transcripts and settings. Unlinking your Ring account stops all processing immediately.</li>
+        </ul>
+
+        <h2>What we never do</h2>
+        <ul>
+            <li>No selling, renting, or sharing of your data with third parties for their purposes.</li>
+            <li>No advertising and no ad-tracking.</li>
+            <li>No training of AI models — ours or anyone else's — on your audio or transcripts.</li>
+            <li>No voice identification or biometric processing.</li>
+        </ul>
+
+        <h2>Security</h2>
+        <p>Data in transit is encrypted with TLS. Stored transcripts are encrypted at rest. Access credentials are held in a managed secrets store, and access to production systems is restricted and logged. If a security incident affects your data, we will notify you within 72 hours of confirming it.</p>
+
+        <h2>Your responsibilities</h2>
+        <p>Recording laws vary by location. You are responsible for using Ring devices and Scribe in compliance with the recording and consent laws that apply to you, including any obligation to notify people that audio is recorded on your premises.</p>
+
+        <h2>Children</h2>
+        <p>Scribe is not directed at children and is available only to Ring account holders, who must be adults.</p>
+
+        <h2>Changes and contact</h2>
+        <p>If this policy changes materially, we will notify you before the change takes effect. Questions or requests (including data deletion requests): <a href="mailto:david.szulc@gmail.com">david.szulc@gmail.com</a>.</p>
+    </div>
+</body>
+</html>

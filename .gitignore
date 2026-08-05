@@ -1,2 +1,10 @@
 .env
 node_modules/
+# server-side secrets — deployed via FTP, never committed
+site/scribe/scribe_ring_creds.php
+site/scribe/scribe_config.php
+site/scribe/scribe_tokens_data_*.php
+site/scribe/scribe_live_token_*.php
+# local experiment outputs
+demucs_test_output/
+stt_comparison_output/

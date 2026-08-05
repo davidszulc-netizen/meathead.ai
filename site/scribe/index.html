@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scribe — Audio Transcription for Ring Cameras</title>
+    <meta name="description" content="Scribe turns spoken audio from your Ring camera events into readable, searchable text — with optional translation.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://meathead.ai/scribe/">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: #1e293b;
+            background: #f8fafc;
+            min-height: 100vh;
+        }
+        .container { max-width: 700px; margin: 0 auto; padding: 3rem 1.5rem; }
+        h1 { font-size: clamp(1.8rem, 5vw, 2.6rem); font-weight: 800; color: #0f172a; margin-bottom: .5rem; }
+        .tagline { font-size: 1.15rem; color: #475569; margin-bottom: 2rem; line-height: 1.6; }
+        .badge {
+            display: inline-block; background: #fef3c7; color: #92400e;
+            font-size: .8rem; font-weight: 600; padding: .3rem .8rem;
+            border-radius: 999px; margin-bottom: 1.5rem;
+        }
+        p { font-size: 1rem; line-height: 1.7; color: #334155; margin-bottom: 1rem; }
+        .cards { display: grid; gap: 1rem; margin: 2rem 0; }
+        .card {
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+            padding: 1.2rem 1.4rem;
+        }
+        .card h2 { font-size: 1rem; font-weight: 700; color: #0f172a; margin-bottom: .35rem; }
+        .card p { font-size: .92rem; margin-bottom: 0; color: #475569; }
+        footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0; font-size: .88rem; color: #64748b; }
+        footer a { color: #2563eb; text-decoration: none; margin-right: 1.2rem; }
+        footer a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <span class="badge">In development — private staging</span>
+        <h1>Scribe</h1>
+        <p class="tagline">Turns spoken audio from your Ring camera events into readable, searchable text — with optional translation between languages.</p>
+
+        <div class="cards">
+            <div class="card">
+                <h2>Know what was said</h2>
+                <p>Doorbell and camera events become text you can read at a glance and search later — no scrubbing through clips.</p>
+            </div>
+            <div class="card">
+                <h2>Understand every language spoken at your door</h2>
+                <p>Optional translation renders conversations in the language you read, even when they happened in one you don't speak.</p>
+            </div>
+            <div class="card">
+                <h2>Privacy first</h2>
+                <p>Audio is processed and then deleted. Only text is kept, for a retention period you control, and you can delete everything with one action. We never train AI models on your data and never sell it.</p>
+            </div>
+        </div>
+
+        <p>Scribe is currently in private development and testing for the Ring Appstore. It is not yet available to the public.</p>
+
+        <footer>
+            <a href="/scribe/privacy.html">Privacy Policy</a>
+            <a href="/scribe/terms.html">Terms of Service</a>
+            <a href="mailto:david.szulc@gmail.com">Contact</a>
+        </footer>
+    </div>
+</body>
+</html>

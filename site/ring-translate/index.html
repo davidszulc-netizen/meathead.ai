@@ -463,14 +463,127 @@
             line-height: 1.4;
             margin-top: .75rem;
         }
+
+        /* Pipeline banner */
+        .pipeline-banner {
+            display: flex;
+            gap: .5rem;
+            align-items: stretch;
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.09);
+            border-radius: 14px;
+            padding: .8rem;
+        }
+        .pipe-stage { flex: 1; min-width: 0; }
+        .pipe-stage.dim { opacity: .45; }
+        .pipe-num {
+            display: inline-block;
+            width: 1.3rem; height: 1.3rem;
+            border-radius: 50%;
+            background: rgba(167,139,250,.25);
+            color: #a78bfa;
+            font-size: .75rem; font-weight: 700;
+            text-align: center; line-height: 1.3rem;
+            margin-bottom: .3rem;
+        }
+        .pipe-name { font-size: .82rem; font-weight: 700; color: rgba(255,255,255,.85); margin-bottom: .2rem; }
+        .pipe-desc { font-size: .68rem; color: rgba(255,255,255,.4); line-height: 1.35; }
+        .pipe-arrow { align-self: center; color: rgba(255,255,255,.25); font-size: 1.1rem; flex-shrink: 0; }
+        @media (max-width: 500px) {
+            .pipeline-banner { flex-direction: column; }
+            .pipe-arrow { transform: rotate(90deg); align-self: flex-start; margin-left: .3rem; }
+        }
+
+        /* Fused result */
+        .fused-card {
+            border: 1px solid rgba(74,222,128,.35);
+            background: linear-gradient(160deg, rgba(74,222,128,.07), rgba(255,255,255,.03));
+            border-radius: 14px;
+            padding: 1.1rem 1.2rem;
+            margin-bottom: 1rem;
+        }
+        .fused-head {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            margin-bottom: .7rem;
+            flex-wrap: wrap;
+        }
+        .fused-title {
+            font-size: .8rem; font-weight: 800;
+            text-transform: uppercase; letter-spacing: .08em;
+            color: #4ade80;
+        }
+        .fused-file {
+            font-size: .75rem; color: rgba(255,255,255,.4);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            flex: 1; min-width: 0;
+        }
+        .conf-badge {
+            font-size: .7rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .06em;
+            padding: .18rem .6rem; border-radius: 999px;
+            flex-shrink: 0;
+        }
+        .conf-high   { background: rgba(74,222,128,.18);  color: #4ade80; border: 1px solid rgba(74,222,128,.4); }
+        .conf-medium { background: rgba(251,191,36,.15);  color: #fde68a; border: 1px solid rgba(251,191,36,.4); }
+        .conf-low    { background: rgba(239,68,68,.15);   color: #fca5a5; border: 1px solid rgba(239,68,68,.4); }
+        .fused-headline {
+            font-size: 1.15rem;
+            font-weight: 800;
+            line-height: 1.4;
+            color: #fff;
+            margin-bottom: .65rem;
+            padding-bottom: .65rem;
+            border-bottom: 1px solid rgba(74,222,128,.25);
+        }
+        .fused-translation {
+            font-size: 1.05rem; line-height: 1.65;
+            color: rgba(255,255,255,.95);
+            white-space: pre-wrap; word-break: break-word;
+            margin-bottom: .6rem;
+        }
+        .fused-source {
+            font-size: .85rem; line-height: 1.55;
+            color: rgba(255,255,255,.55);
+            white-space: pre-wrap; word-break: break-word;
+            border-top: 1px solid rgba(255,255,255,.08);
+            padding-top: .6rem;
+        }
+        .fused-notes {
+            font-size: .78rem; color: rgba(255,255,255,.45);
+            font-style: italic; margin-top: .55rem; line-height: 1.4;
+        }
     </style>
 </head>
 <body>
 
 <header>
     <h1>Ring Audio Translator</h1>
-    <p>Upload a Ring camera video &mdash; get an English or Chinese transcript</p>
+    <p>Ensemble pipeline bench &mdash; multi-provider STT fused into one best answer</p>
 </header>
+
+<div style="max-width:680px;margin:1.25rem auto 0;padding:0 1.25rem;">
+    <div class="pipeline-banner">
+        <div class="pipe-stage dim">
+            <div class="pipe-num">1</div>
+            <div class="pipe-name">Silero VAD</div>
+            <div class="pipe-desc">backend stage &mdash; benchmarked locally, not run in this browser bench</div>
+        </div>
+        <div class="pipe-arrow">&#x2192;</div>
+        <div class="pipe-stage">
+            <div class="pipe-num">2</div>
+            <div class="pipe-name">STT ensemble</div>
+            <div class="pipe-desc">all enabled providers run in parallel &mdash; three imperfect hypotheses</div>
+        </div>
+        <div class="pipe-arrow">&#x2192;</div>
+        <div class="pipe-stage">
+            <div class="pipe-num">3</div>
+            <div class="pipe-name">GPT-4o-mini fusion</div>
+            <div class="pipe-desc">common theme + translation + confidence (temp 0, vendor priors)</div>
+        </div>
+    </div>
+</div>
 
 <main>
 
@@ -546,9 +659,9 @@
         <h2>Ring Video</h2>
         <div class="drop-zone" id="drop-zone">
             <input type="file" id="file-input" accept="video/*,audio/*,.mp4,.m4a,.mov,.avi,.webm,.mp3,.wav">
-            <div class=”icon”>&#x1F4F9;</div>
+            <div class="icon">&#x1F4F9;</div>
             <div class="label" id="drop-label">Drop video here or click to browse</div>
-            <div class="sub">MP4, MOV, M4A &bull; Max 25 MB (audio extracted automatically for larger files)</div>
+            <div class="sub">MP4, MOV, M4A &bull; Any size &mdash; audio is extracted, resampled to 16 kHz, and auto-chunked past vendor limits</div>
         </div>
         <div class="or-divider">or select a folder</div>
         <button class="btn-folder" id="btn-folder" onclick="document.getElementById('folder-input').click()">&#x1F4C1; Select Folder</button>
@@ -558,7 +671,7 @@
 
     <!-- Translate Button -->
     <button class="btn-translate" id="translate-btn" onclick="runTranslation()" disabled>
-        <span>Compare Enabled Providers</span>
+        <span>Run Ensemble Pipeline</span>
     </button>
 
     <!-- Progress -->
@@ -573,7 +686,7 @@
 
     <!-- Result -->
     <div class="card result-card" id="result-card" style="margin-top:1.25rem">
-        <h2>Provider Results</h2>
+        <h2>Results &mdash; fused first, raw hypotheses below</h2>
         <div id="provider-results"></div>
     </div>
 
@@ -585,6 +698,12 @@
 
 <script>
 'use strict';
+
+// Canonicalize to www: localStorage (provider keys, Scribe key) is per-origin,
+// and split apex/www origins mean invisible keys. All storage lives on www.
+if (location.hostname === 'meathead.ai') {
+    location.replace('https://www.meathead.ai' + location.pathname + location.search + location.hash);
+}
 
 const PROVIDERS = {
     openai: { label: 'OpenAI Whisper', store: 'ring_translator_openai_key', costPerMinute: 0.006 },
@@ -705,8 +824,8 @@ function updateTranslateBtn() {
     const btn = document.getElementById('translate-btn');
     btn.disabled = !(count && hasFiles);
     btn.querySelector('span').textContent = selectedFiles.length > 1
-        ? `Compare ${count || 0} Provider${count !== 1 ? 's' : ''} on ${selectedFiles.length} Files`
-        : `Compare ${count || 0} Enabled Provider${count !== 1 ? 's' : ''}`;
+        ? `Run Ensemble Pipeline on ${selectedFiles.length} Files (${count || 0} provider${count !== 1 ? 's' : ''})`
+        : `Run Ensemble Pipeline (${count || 0} provider${count !== 1 ? 's' : ''})`;
 }
 
 function showError(msg) {
@@ -743,13 +862,12 @@ async function runTranslation() {
 
     const src = document.getElementById('src-lang').value;
     const dst = document.getElementById('dst-lang').value;
-    const needsTranslation = src !== dst;
     const files = selectedFiles.length ? selectedFiles : (selectedFile ? [selectedFile] : []);
     if (!files.length) return;
 
-    const nonOpenAiEnabled = enabledProviders.filter(p => p !== 'openai');
-    if (needsTranslation && !localStorage.getItem(PROVIDERS.openai.store) && nonOpenAiEnabled.length) {
-        showWarning('ElevenLabs and Soniox return transcripts only; an OpenAI key is required to translate their output.');
+    const openAiKey = localStorage.getItem(PROVIDERS.openai.store);
+    if (!openAiKey) {
+        showWarning('No OpenAI key saved: the fusion stage (stage 3) needs one. Raw per-provider transcripts will still be shown.');
     }
 
     const resultsEl = document.getElementById('provider-results');
@@ -757,18 +875,75 @@ async function runTranslation() {
     document.getElementById('result-card').classList.add('visible');
     document.getElementById('translate-btn').disabled = true;
 
-    try {
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-            if (selectedFiles.length) updateFileStatus(i, 'processing', '...');
-            setProgress(true, `[${i + 1}/${files.length}] Preparing ${file.name}...`);
-            const prepared = await prepareAudio(file);
-            for (const providerId of enabledProviders) {
-                setProgress(true, `[${i + 1}/${files.length}] ${PROVIDERS[providerId].label}...`);
-                await runProvider(providerId, prepared, file.name, src, dst, needsTranslation, resultsEl);
+    // Pre-create one ordered container per file so concurrent completion
+    // can't shuffle the display order.
+    const fileContainers = files.map(() => {
+        const div = document.createElement('div');
+        resultsEl.appendChild(div);
+        return div;
+    });
+
+    const FILE_CONCURRENCY = 3;
+    let nextIndex = 0;
+    let doneCount = 0;
+
+    const processFile = async (i) => {
+        const file = files[i];
+        const container = fileContainers[i];
+        if (selectedFiles.length) updateFileStatus(i, 'processing', '...');
+        const prepared = await prepareAudio(file);
+
+        // Stage 2: all enabled STT providers in parallel
+        const settled = await Promise.allSettled(
+            enabledProviders.map(pid => runProvider(pid, prepared, src))
+        );
+
+        const hypotheses = [];
+        settled.forEach((s, idx) => {
+            const pid = enabledProviders[idx];
+            if (s.status === 'fulfilled') hypotheses.push(s.value);
+            else appendProviderError(container, PROVIDERS[pid].label, file.name, s.reason.message);
+        });
+
+        // Stage 3: fusion + per-vendor translations, all in parallel
+        const needsTranslation = src !== dst;
+        if (hypotheses.length && openAiKey) {
+            const fusionPromise = fuseTranscripts(openAiKey, hypotheses, src, dst)
+                .then(fused => ({ ok: true, fused }))
+                .catch(err => ({ ok: false, err }));
+            if (needsTranslation) {
+                await Promise.allSettled(hypotheses.map(h =>
+                    translateWithGpt(openAiKey, h.transcript, dst)
+                        .then(t => { h.translation = t; })
+                        .catch(err => { h.translationError = err.message; })
+                ));
             }
-            if (selectedFiles.length) updateFileStatus(i, 'done', 'done');
+            const fusionResult = await fusionPromise;
+            if (fusionResult.ok) appendFusedResult(container, file.name, fusionResult.fused, hypotheses.length);
+            else appendProviderError(container, 'Fusion', file.name, fusionResult.err.message);
         }
+
+        for (const h of hypotheses) appendProviderResult(container, h, file.name);
+    };
+
+    const worker = async () => {
+        while (nextIndex < files.length) {
+            const i = nextIndex++;
+            try {
+                await processFile(i);
+                if (selectedFiles.length) updateFileStatus(i, 'done', 'done');
+            } catch (err) {
+                if (selectedFiles.length) updateFileStatus(i, 'error', 'error');
+                appendProviderError(fileContainers[i], 'Pipeline', files[i].name, err.message);
+            }
+            doneCount++;
+            setProgress(true, `${doneCount}/${files.length} clips done (${Math.min(FILE_CONCURRENCY, files.length - doneCount)} in flight)...`);
+        }
+    };
+
+    try {
+        setProgress(true, `Processing ${files.length} clip${files.length !== 1 ? 's' : ''}, ${Math.min(FILE_CONCURRENCY, files.length)} at a time...`);
+        await Promise.all(Array.from({ length: Math.min(FILE_CONCURRENCY, files.length) }, worker));
     } catch (err) {
         showError(err.message);
     } finally {
@@ -779,57 +954,165 @@ async function runTranslation() {
 }
 
 async function prepareAudio(file) {
-    let uploadFile = file;
+    const CHUNK_BYTES = 20 * 1024 * 1024;   // stay under vendor 25 MB caps with margin
+    let pcm;
     try {
-        uploadFile = await extractAudio(file);
-    } catch (_) {
-        uploadFile = file;
+        pcm = await extractPcm16k(file);
+    } catch (err) {
+        // Decode failed (unusual container) — fall back to raw upload if small enough.
+        if (file.size <= 25 * 1024 * 1024) {
+            const audioSeconds = await getAudioDuration(file).catch(() => 0);
+            return { sourceFile: file, chunks: [file], audioSeconds };
+        }
+        throw new Error(`${file.name}: could not decode audio in-browser (${err.message}) and file exceeds 25 MB for raw upload.`);
     }
-    if (uploadFile.size > 25 * 1024 * 1024) throw new Error(`${file.name}: audio exceeds 25 MB. Try a shorter clip.`);
-    const audioSeconds = await getAudioDuration(uploadFile).catch(() => 0);
-    return { sourceFile: file, uploadFile, audioSeconds };
+    if (!pcm.length) throw new Error(`${file.name}: no audio found in file.`);
+    const audioSeconds = pcm.length / 16000;
+    const maxSamples = Math.floor((CHUNK_BYTES - 44) / 2);
+    const chunks = [];
+    for (let off = 0; off < pcm.length; off += maxSamples) {
+        const part = pcm.subarray(off, off + maxSamples);
+        const wavBlob = new Blob([encodeWav(part, 16000)], { type: 'audio/wav' });
+        const suffix = pcm.length > maxSamples ? `.part${chunks.length + 1}.wav` : '.wav';
+        chunks.push(new File([wavBlob], file.name.replace(/\.[^.]+$/, suffix), { type: 'audio/wav' }));
+    }
+    return { sourceFile: file, chunks, audioSeconds };
 }
 
-async function runProvider(providerId, prepared, filename, src, dst, needsTranslation, container) {
+async function runProvider(providerId, prepared, src) {
     const provider = PROVIDERS[providerId];
     const key = localStorage.getItem(provider.store);
     const started = performance.now();
-    let transcript = '';
-    let finalText = '';
-    let translationNote = '';
+    const texts = [];
 
-    try {
+    for (const chunk of prepared.chunks) {
+        let t = '';
         if (providerId === 'openai') {
-            transcript = await callWhisper(key, prepared.uploadFile, src);
+            t = await callWhisper(key, chunk, src);
         } else if (providerId === 'elevenlabs') {
-            transcript = await callElevenLabs(key, prepared.uploadFile, src);
+            t = await callElevenLabs(key, chunk, src);
         } else if (providerId === 'soniox') {
-            transcript = await callSoniox(key, prepared.uploadFile, src);
+            t = await callSoniox(key, chunk, src);
         }
-        if (!transcript) throw new Error('No speech detected.');
-
-        finalText = transcript;
-        if (needsTranslation) {
-            const openAiKey = localStorage.getItem(PROVIDERS.openai.store);
-            if (openAiKey) {
-                finalText = await translateWithGpt(openAiKey, transcript, dst);
-            } else {
-                translationNote = 'Translation skipped: save an OpenAI key to translate this transcript.';
-            }
-        }
-
-        appendProviderResult(container, {
-            providerName: provider.label,
-            filename,
-            finalText,
-            translationNote,
-            seconds: (performance.now() - started) / 1000,
-            audioSeconds: prepared.audioSeconds,
-            cost: estimateCost(providerId, prepared.audioSeconds),
-        });
-    } catch (err) {
-        appendProviderError(container, provider.label, filename, err.message);
+        if (t) texts.push(t);
     }
+    const transcript = texts.join('\n').trim();
+    if (!transcript) throw new Error('No speech detected.');
+
+    return {
+        providerId,
+        providerName: provider.label,
+        transcript,
+        seconds: (performance.now() - started) / 1000,
+        audioSeconds: prepared.audioSeconds,
+        cost: estimateCost(providerId, prepared.audioSeconds),
+    };
+}
+
+async function translateWithGpt(apiKey, text, dstLang) {
+    const dstName = dstLang === 'zh' ? 'Simplified Chinese' : 'English';
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            temperature: 0,
+            messages: [
+                {
+                    role: 'system',
+                    content: `Translate the following text to ${dstName}. Return only the translation, no explanation. Keep proper nouns, names, and addresses as-is.`
+                },
+                { role: 'user', content: text }
+            ]
+        })
+    });
+    if (!res.ok) throw new Error(`GPT error ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    return data.choices[0].message.content.trim();
+}
+
+// Stage 3: LLM fusion with vendor failure-mode priors (the proprietary layer).
+async function fuseTranscripts(apiKey, hypotheses, srcLang, dstLang) {
+    const langName = c => ({ zh: 'Mandarin Chinese', en: 'English', es: 'Spanish' }[c] || c);
+    const hypothesisBlock = hypotheses
+        .map(h => `[${h.providerName}]\n${h.transcript}`)
+        .join('\n\n');
+
+    const system = `You fuse multiple imperfect speech-to-text transcripts of ONE short security-camera clip into the single most likely account of what was actually said. Field-measured reality: each provider is only 0-30% correct on this audio, randomly per clip; the signal lives in their OVERLAP.
+
+Known provider failure modes (weigh disagreement accordingly):
+- Soniox: hallucinates song lyrics and fluent-but-invented sentences, especially over music or noise. Distrust content only Soniox has.
+- OpenAI Whisper: drops soft or distant speakers entirely; blanks on noisy audio; renders names phonetically. Whisper missing something is weak evidence it wasn't said.
+- ElevenLabs Scribe: most reliable in noise and on proper names, but not immune to error.
+
+Rules:
+1. Content corroborated by 2+ providers is almost certainly real. Include it.
+2. Content from ONE provider only: include it if it is contextually plausible and matches that provider's strengths; exclude it if it matches that provider's known hallucination pattern.
+3. Never invent content found in no transcript. Prefer omitting over guessing.
+4. Spoken language is ${langName(srcLang)}. Target language is ${langName(dstLang)}.
+5. Confidence: "high" = strong cross-provider agreement on the core content; "medium" = partial agreement, core message clear; "low" = providers substantially disagree or content is mostly single-source.
+
+Return ONLY JSON: {"headline": "<one subject-line sentence in ${langName(dstLang)}, roughly a dozen words, stating what happened / what was said — like an email subject>", "fused_source": "<best transcript in the spoken language>", "translation": "<fused content in ${langName(dstLang)}>", "confidence": "high|medium|low", "notes": "<one short sentence on agreement/disagreements worth knowing, or empty string>"}`;
+
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            temperature: 0,
+            response_format: { type: 'json_object' },
+            messages: [
+                { role: 'system', content: system },
+                { role: 'user', content: hypothesisBlock },
+            ],
+        }),
+    });
+    if (!res.ok) throw new Error(`Fusion error ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    const parsed = JSON.parse(data.choices[0].message.content);
+    if (!parsed.translation && !parsed.fused_source) throw new Error('Fusion returned no content.');
+    return parsed;
+}
+
+function appendFusedResult(container, filename, fused, hypCount) {
+    const conf = ['high', 'medium', 'low'].includes(fused.confidence) ? fused.confidence : 'low';
+    const card = document.createElement('div');
+    card.className = 'fused-card';
+
+    const head = document.createElement('div');
+    head.className = 'fused-head';
+    head.innerHTML = `<span class="fused-title">Fused Result</span>` +
+        `<span class="fused-file">${escHtml(filename)} &bull; ${hypCount} hypothes${hypCount === 1 ? 'is' : 'es'}</span>` +
+        `<span class="conf-badge conf-${conf}">${conf} confidence</span>`;
+    card.appendChild(head);
+
+    if (fused.headline) {
+        const headline = document.createElement('div');
+        headline.className = 'fused-headline';
+        headline.textContent = fused.headline;
+        card.appendChild(headline);
+    }
+
+    const translation = document.createElement('div');
+    translation.className = 'fused-translation';
+    translation.textContent = fused.translation || fused.fused_source || '';
+    card.appendChild(translation);
+
+    if (fused.fused_source && fused.translation && fused.fused_source !== fused.translation) {
+        const srcEl = document.createElement('div');
+        srcEl.className = 'fused-source';
+        srcEl.textContent = fused.fused_source;
+        card.appendChild(srcEl);
+    }
+
+    if (fused.notes) {
+        const notes = document.createElement('div');
+        notes.className = 'fused-notes';
+        notes.textContent = fused.notes;
+        card.appendChild(notes);
+    }
+
+    container.appendChild(card);
 }
 
 async function callWhisper(apiKey, file, language) {
@@ -865,6 +1148,16 @@ async function callElevenLabs(apiKey, file, language) {
     return (data.text || '').trim();
 }
 
+// Best-effort: Soniox enforces an org-wide FILE COUNT limit — delete every
+// upload (and finished job) or the account eventually rejects new uploads.
+function sonioxCleanup(apiKey, fileId, jobId) {
+    const H = { 'Authorization': `Bearer ${apiKey}` };
+    if (jobId) fetch(`https://api.soniox.com/v1/transcriptions/${jobId}`,
+                     { method: 'DELETE', headers: H }).catch(() => {});
+    if (fileId) fetch(`https://api.soniox.com/v1/files/${fileId}`,
+                      { method: 'DELETE', headers: H }).catch(() => {});
+}
+
 async function callSoniox(apiKey, file, srcLang) {
     const uploadForm = new FormData();
     uploadForm.append('file', file, file.name);
@@ -877,63 +1170,46 @@ async function callSoniox(apiKey, file, srcLang) {
     const uploaded = await upload.json();
     const fileId = uploaded.id || uploaded.file_id;
     if (!fileId) throw new Error('Soniox did not return a file id.');
+    let jobId = null;
 
-    const body = {
-        model: 'stt-async-preview',
-        file_id: fileId,
-        language_hints: srcLang ? [srcLang] : undefined,
-        enable_speaker_diarization: false,
-        enable_language_identification: true,
-    };
+    try {
+        const body = {
+            model: 'stt-async-preview',
+            file_id: fileId,
+            language_hints: srcLang ? [srcLang] : undefined,
+            enable_speaker_diarization: false,
+            enable_language_identification: true,
+        };
 
-    const created = await fetch('https://api.soniox.com/v1/transcriptions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-    });
-    if (!created.ok) throw new Error(`Soniox create error ${created.status}: ${await created.text()}`);
-    const job = await created.json();
-
-    for (let i = 0; i < 90; i++) {
-        await sleep(1500);
-        const statusRes = await fetch(`https://api.soniox.com/v1/transcriptions/${job.id}`, {
-            headers: { 'Authorization': `Bearer ${apiKey}` },
+        const created = await fetch('https://api.soniox.com/v1/transcriptions', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
         });
-        if (!statusRes.ok) throw new Error(`Soniox status error ${statusRes.status}: ${await statusRes.text()}`);
-        const status = await statusRes.json();
-        if (status.status === 'error') throw new Error(status.error_message || 'Soniox transcription failed.');
-        if (status.status === 'completed') {
-            const transcriptRes = await fetch(`https://api.soniox.com/v1/transcriptions/${job.id}/transcript`, {
+        if (!created.ok) throw new Error(`Soniox create error ${created.status}: ${await created.text()}`);
+        jobId = (await created.json()).id;
+
+        for (let i = 0; i < 90; i++) {
+            await sleep(1500);
+            const statusRes = await fetch(`https://api.soniox.com/v1/transcriptions/${jobId}`, {
                 headers: { 'Authorization': `Bearer ${apiKey}` },
             });
-            if (!transcriptRes.ok) throw new Error(`Soniox transcript error ${transcriptRes.status}: ${await transcriptRes.text()}`);
-            const transcript = await transcriptRes.json();
-            return (transcript.text || '').trim();
+            if (!statusRes.ok) throw new Error(`Soniox status error ${statusRes.status}: ${await statusRes.text()}`);
+            const status = await statusRes.json();
+            if (status.status === 'error') throw new Error(status.error_message || 'Soniox transcription failed.');
+            if (status.status === 'completed') {
+                const transcriptRes = await fetch(`https://api.soniox.com/v1/transcriptions/${jobId}/transcript`, {
+                    headers: { 'Authorization': `Bearer ${apiKey}` },
+                });
+                if (!transcriptRes.ok) throw new Error(`Soniox transcript error ${transcriptRes.status}: ${await transcriptRes.text()}`);
+                const transcript = await transcriptRes.json();
+                return (transcript.text || '').trim();
+            }
         }
+        throw new Error('Soniox timed out waiting for transcription.');
+    } finally {
+        sonioxCleanup(apiKey, fileId, jobId);
     }
-    throw new Error('Soniox timed out waiting for transcription.');
-}
-
-async function translateWithGpt(apiKey, text, dstLang) {
-    const dstName = dstLang === 'zh' ? 'Simplified Chinese' : 'English';
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            temperature: 0,
-            messages: [
-                {
-                    role: 'system',
-                    content: `Translate the following text to ${dstName}. Return only the translation, no explanation. Keep proper nouns, names, and addresses as-is.`
-                },
-                { role: 'user', content: text }
-            ]
-        })
-    });
-    if (!res.ok) throw new Error(`GPT error ${res.status}: ${await res.text()}`);
-    const data = await res.json();
-    return data.choices[0].message.content.trim();
 }
 
 function updateFileStatus(idx, state, text) {
@@ -944,31 +1220,47 @@ function updateFileStatus(idx, state, text) {
     }
 }
 
-function appendProviderResult(container, result) {
+function appendProviderResult(container, result, filename) {
     const section = document.createElement('div');
     section.className = 'provider-result';
     const rtf = result.audioSeconds ? `${(result.seconds / result.audioSeconds).toFixed(2)}x` : 'n/a';
     const audioMins = result.audioSeconds ? (result.audioSeconds / 60).toFixed(2) : 'n/a';
     const cost = result.cost == null ? 'plan' : `${result.cost.toFixed(4)}`;
     section.innerHTML = `
-        <div class="batch-result-title">${escHtml(result.providerName)} - ${escHtml(result.filename)}</div>
+        <div class="batch-result-title">${escHtml(result.providerName)} - ${escHtml(filename)}</div>
         <div class="metrics">
             <div class="metric"><div class="metric-label">Runtime</div><div class="metric-value">${result.seconds.toFixed(1)}s</div></div>
             <div class="metric"><div class="metric-label">Audio</div><div class="metric-value">${audioMins} min</div></div>
             <div class="metric"><div class="metric-label">RT Factor</div><div class="metric-value">${rtf}</div></div>
             <div class="metric"><div class="metric-label">Est. Cost</div><div class="metric-value">${cost}</div></div>
         </div>`;
+    if (result.translation) {
+        const transLabel = document.createElement('div');
+        transLabel.className = 'result-label';
+        transLabel.textContent = 'Translation';
+        section.appendChild(transLabel);
+        const transEl = document.createElement('div');
+        transEl.className = 'result-text';
+        transEl.style.fontSize = '.92rem';
+        transEl.textContent = result.translation;
+        section.appendChild(transEl);
+    } else if (result.translationError) {
+        const note = document.createElement('div');
+        note.className = 'note';
+        note.textContent = `Translation failed: ${result.translationError}`;
+        section.appendChild(note);
+    }
+    const rawLabel = document.createElement('div');
+    rawLabel.className = 'result-label';
+    rawLabel.style.marginTop = result.translation ? '.7rem' : '0';
+    rawLabel.textContent = 'Raw transcript';
+    section.appendChild(rawLabel);
     const textEl = document.createElement('div');
     textEl.className = 'result-text';
     textEl.style.fontSize = '.9rem';
-    textEl.textContent = result.finalText;
+    textEl.style.color = 'rgba(255,255,255,.65)';
+    textEl.textContent = result.transcript;
     section.appendChild(textEl);
-    if (result.translationNote) {
-        const note = document.createElement('div');
-        note.className = 'note';
-        note.textContent = result.translationNote;
-        section.appendChild(note);
-    }
     container.appendChild(section);
 }
 
@@ -1009,34 +1301,33 @@ async function getAudioDuration(file) {
     }
 }
 
-async function extractAudio(file) {
+// Decode any container, downmix to mono, resample to 16 kHz.
+// 16 kHz 16-bit mono = ~1.9 MB/min, so even hour-long recordings chunk cleanly.
+async function extractPcm16k(file) {
     const arrayBuffer = await file.arrayBuffer();
-    const audioCtx = new AudioContext();
+    const decodeCtx = new AudioContext();
     let audioBuffer;
     try {
-        audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        audioBuffer = await decodeCtx.decodeAudioData(arrayBuffer);
     } finally {
-        audioCtx.close();
+        decodeCtx.close();
     }
 
-    const sampleRate = audioBuffer.sampleRate;
-    const numCh = audioBuffer.numberOfChannels;
-    const len = audioBuffer.length;
-    const mono = new Float32Array(len);
-    for (let ch = 0; ch < numCh; ch++) {
-        const chData = audioBuffer.getChannelData(ch);
-        for (let i = 0; i < len; i++) mono[i] += chData[i] / numCh;
-    }
+    const targetLen = Math.ceil(audioBuffer.duration * 16000);
+    const offline = new OfflineAudioContext(1, targetLen, 16000);
+    const srcNode = offline.createBufferSource();
+    srcNode.buffer = audioBuffer;
+    srcNode.connect(offline.destination);
+    srcNode.start();
+    const rendered = await offline.startRendering();
 
-    const pcm = new Int16Array(len);
-    for (let i = 0; i < len; i++) {
-        const s = Math.max(-1, Math.min(1, mono[i]));
+    const data = rendered.getChannelData(0);
+    const pcm = new Int16Array(data.length);
+    for (let i = 0; i < data.length; i++) {
+        const s = Math.max(-1, Math.min(1, data[i]));
         pcm[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
     }
-
-    const wavBuffer = encodeWav(pcm, sampleRate);
-    const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
-    return new File([wavBlob], file.name.replace(/\.[^.]+$/, '.wav'), { type: 'audio/wav' });
+    return pcm;
 }
 
 function encodeWav(pcm, sampleRate) {
