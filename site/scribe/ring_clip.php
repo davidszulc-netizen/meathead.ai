@@ -51,6 +51,15 @@ try {
         throw new Exception("download request -> $code (no redirect): " . substr($resp, -300));
     }
 
+    if (isset($_GET['mode']) && $_GET['mode'] === 'url') {
+        // Fast path for the extension: hand back the presigned CDN URL so the
+        // client downloads directly from Ring — relaying 40MB through shared
+        // PHP hosting dominated caption latency.
+        header('Content-Type: application/json');
+        echo json_encode(['url' => $redirect]);
+        exit;
+    }
+
     if (isset($_GET['debug'])) {
         // Diagnose step 2 without streaming: fetch a byte range and report.
         $ch = curl_init($redirect);
