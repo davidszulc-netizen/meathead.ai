@@ -30,8 +30,23 @@ function settings_defaults() {
         'mask_regions' => [],
         // null = derive from the clip itself rather than a fixed threshold.
         'noise_floor' => null,
+        // Free-text description of the space, written by the owner and fed to
+        // the models as scene context. Structured fields cannot express "a TV
+        // plays at low volume in view" or "customers speak Spanish, staff speak
+        // Mandarin to each other" — this can, and people describe their own
+        // room far better than they answer dropdowns.
+        'hints' => '',
         'notes' => '',
     ];
+}
+
+// Starter template offered to a camera that has never been configured.
+function settings_hint_template() {
+    return "Camera location: \n"
+         . "Background audio (TV, radio, music — and how loud): \n"
+         . "Languages — customers: \n"
+         . "Languages — staff: \n"
+         . "What matters most to hear: ";
 }
 
 function settings_load() {
@@ -76,4 +91,5 @@ echo json_encode([
     'device' => $device,
     'configured' => isset($all[$device]),
     'settings' => array_merge(settings_defaults(), $all[$device] ?? []),
+    'hint_template' => settings_hint_template(),
 ]);
